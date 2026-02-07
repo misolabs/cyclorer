@@ -28,12 +28,39 @@ const marker = L.circleMarker([0, 0], {
   fillOpacity: 0.8
 }).addTo(map)
 
-navigator.geolocation.watchPosition(
-  pos => {
-    const { latitude, longitude } = pos.coords
-    marker.setLatLng([latitude, longitude])
-    map.setView([latitude, longitude], 18)
-  },
-  err => alert(err.message),
-  { enableHighAccuracy: true }
-)
+// --- GPS Tracking Logic ---
+let watchId = null;
+let trackingEnabled = false;
+
+const button = document.getElementById("tracking-btn");
+
+button.addEventListener("click", () => {
+  if (!trackingEnabled) {
+    // Enable tracking
+    if ("geolocation" in navigator) {
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          if (trackingEnabled) {
+            userMarker.setLatLng([latitude, longitude]);
+            map.setView([latitude, longitude], 16);
+          }
+        },
+        (err) => console.warn("Geolocation error:", err.message),
+        { enableHighAccuracy: true }
+      );
+      trackingEnabled = true;
+      button.textContent = "Disable Tracking";
+    } else {
+      alert("Geolocation not available");
+    }
+  } else {
+    // Disable tracking
+    trackingEnabled = false;
+    button.textContent = "Enable Tracking";
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+  }
+});

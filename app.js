@@ -6,7 +6,7 @@ async function loadJunctions() {
 
     L.geoJSON(geojsonData, {
       pointToLayer: (feature, latlng) =>
-        L.circleMarker(latlng, { color: "red", radius: 5 }),
+        L.circleMarker(latlng, { color: "red", radius: 3 }),
     }).addTo(map);
   } catch (err) {
     console.error("Failed to load GeoJSON:", err);
@@ -22,7 +22,7 @@ async function loadEdges(url) {
     L.geoJSON(geojsonData, {
       style: {
         color: "red",
-        weight: 3,
+        weight: 2,
         opacity: 0.7
       }
     }).addTo(map);

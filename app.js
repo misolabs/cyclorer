@@ -42,7 +42,7 @@ button.addEventListener("click", () => {
         (pos) => {
           const { latitude, longitude } = pos.coords;
           if (trackingEnabled) {
-            userMarker.setLatLng([latitude, longitude]);
+            marker.setLatLng([latitude, longitude]);
             map.setView([latitude, longitude], 16);
           }
         },

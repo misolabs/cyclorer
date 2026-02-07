@@ -12,7 +12,12 @@
 
   <style>
     html, body { margin: 0; height: 100%; }
-    #map { position: fixed; inset: 0; }
+    #map { 
+      position: fixed;
+      inset: 0;
+      transform-origin: center center;
+      transition: transform 0.25s linear; 
+    }
 
     #tracking-btn {
       position: absolute;

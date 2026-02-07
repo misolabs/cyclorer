@@ -13,6 +13,25 @@ async function loadJunctions() {
   }
 }
 
+async function loadEdges(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Network error");
+    const geojsonData = await response.json();
+
+    L.geoJSON(geojsonData, {
+      style: {
+        color: "red",
+        weight: 3,
+        opacity: 0.7
+      }
+    }).addTo(map);
+
+  } catch (err) {
+    console.error("Failed to load edges:", err);
+  }
+}
+
 const map = L.map("map").setView([49.477015, 5.980889], 15)
 
 L.tileLayer(
@@ -21,6 +40,7 @@ L.tileLayer(
 ).addTo(map)
 
 loadJunctions();
+loadEdges("unvisited_edges.geojson")
 
 const marker = L.circleMarker([0, 0], {
   radius: 8,

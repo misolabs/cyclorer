@@ -2,21 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Explore PoC</title>
+  <title>Cyclorer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet CSS -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
-
-  <style>
-    html, body, #map {
-      height: 100%;
-      margin: 0;
-    }
-  </style>
 </head>
 <body>
   <div id="map"></div>
@@ -24,5 +19,12 @@
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
+
+  <!-- Install service worker if supported -->
+  <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js")
+  }
+  </script>
 </body>
 </html>

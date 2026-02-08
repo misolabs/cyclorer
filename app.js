@@ -58,9 +58,10 @@ function smoothHeading(headings) {
   return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
 }
 
-function rotateMap(heading) {
+function rotateMap(deg) {
   const mapEl = document.getElementById("map");
-  mapEl.style.transform = `rotate(${-heading}deg)`;
+  mapEl.style.transform =
+    `translate(-50%, -50%) rotate(${deg}deg)`;
 }
 
 // For heading direction
@@ -93,6 +94,10 @@ let stableHeading = null;
 const MAX_HISTORY = 5;
 
 const button = document.getElementById("tracking-btn");
+
+window.addEventListener("resize", () => {
+  map.invalidateSize({ animate: false });
+});
 
 button.addEventListener("click", () => {
   if (!trackingEnabled) {

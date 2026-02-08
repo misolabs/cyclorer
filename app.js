@@ -68,7 +68,7 @@ function rotateMap(deg) {
 const MIN_SPEED = 0.5; // m/s (~5.4 km/h)
 
 // Initialise map
-const map = L.map("map").setView([49.477015, 5.980889], 15)
+const map = L.map("map").setView([49.477015, 5.980889], 17)
 
 L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -109,7 +109,7 @@ button.addEventListener("click", () => {
           if (trackingEnabled) {
             // Tracking
             marker.setLatLng([latitude, longitude]);
-            map.setView([latitude, longitude], 16);
+            map.setView([latitude, longitude], 17);
 
             // Heading
             if (lastPos && speed !== null && speed > MIN_SPEED) {

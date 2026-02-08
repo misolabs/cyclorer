@@ -100,7 +100,7 @@ button.addEventListener("click", () => {
     if ("geolocation" in navigator) {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          const { latitude, longitude } = pos.coords;
+          const { latitude, longitude, speed } = pos.coords;
           if (trackingEnabled) {
             // Tracking
             marker.setLatLng([latitude, longitude]);

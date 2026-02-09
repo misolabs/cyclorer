@@ -64,6 +64,11 @@ function rotateMap(deg) {
     `translate(-50%, -50%) rotate(${-deg}deg)`;
 }
 
+function setStats(total_length, area_count){
+  statsEl = document.getElementById("stats")
+  statsEl.getElementById("total_length").textContent = `${total_length}`
+}
+
 // For heading direction
 const MIN_SPEED = 0.5; // m/s (~5.4 km/h)
 
@@ -92,6 +97,8 @@ let lastPos = null;
 let headingHistory = [];
 let stableHeading = null;
 const MAX_HISTORY = 5;
+
+setStats(666, 17)
 
 const button = document.getElementById("tracking-btn");
 

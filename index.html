@@ -62,6 +62,13 @@
       height: 100%;
       visibility: hidden;
     }
+    #stats{
+      position: absolute;
+      top: 90%;
+      left: 10px;
+      font-size: medium;
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -72,6 +79,10 @@
 </body>
 <button id="tracking-btn">Enable Tracking</button>
 <div id="overlay"><img src="overlay.svg" id="overlay-img"/></div>
+<div id="stats">
+  <p id="total_length">...</p>
+  <p id="area_count">...</p>
+</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="./app.js"></script>
 </body>

@@ -93,6 +93,7 @@ L.tileLayer(
 
 loadJunctions();
 loadEdges("unvisited_edges.geojson")
+loadStats("data/stats.json")
 
 const marker = L.circleMarker([0, 0], {
   radius: 8,

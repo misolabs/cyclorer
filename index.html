@@ -62,14 +62,20 @@
       height: 100%;
       visibility: hidden;
     }
-    #stats{
+    #stats-container{
       position: absolute;
       top: 90%;
-      left: 10px;
+      left: 10%;
+      width: 80%;
+
       font-size: medium;
       font-family: sans-serif;
       text-shadow: 2px 2px 1px grey;
       color: white;
+      
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
   </style>
 </head>
@@ -81,7 +87,7 @@
 </body>
 <button id="tracking-btn">Enable Tracking</button>
 <div id="overlay"><img src="overlay.svg" id="overlay-img"/></div>
-<div id="stats">
+<div id="stats-container">
   <p id="total_length">...</p>
   <p id="area_count">...</p>
 </div>

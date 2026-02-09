@@ -25,8 +25,8 @@ async function loadJunctions(url) {
       const key = cellKey(node.geometry.coordinates[1], node.geometry.coordinates[0]);
       if (!grid.has(key)) grid.set(key, []);
         grid.get(key).push(node);
-      console.log(key)
     }
+    console.log("buckets", grid.size)
   } catch (err) {
     console.error("Failed to load GeoJSON:", err);
   }

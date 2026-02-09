@@ -49,6 +49,12 @@
       cursor: pointer;
       font-family: sans-serif;
     }
+    #overlay{
+      position: absolute;
+      top: 0px;
+      right: 0px;
+      z-index: 900;
+    }
   </style>
 </head>
 <body>
@@ -58,7 +64,7 @@
   </div>
 </body>
 <button id="tracking-btn">Enable Tracking</button>
-
+<div id="overlay"><img src="overlay.svg" id="overlay-img"/></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="./app.js"></script>
 </body>

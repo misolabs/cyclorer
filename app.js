@@ -61,7 +61,7 @@ function smoothHeading(headings) {
 function rotateMap(deg) {
   const mapEl = document.getElementById("map");
   mapEl.style.transform =
-    `translate(-50%, -50%) rotate(${deg}deg)`;
+    `translate(-50%, -50%) rotate(${-deg}deg)`;
 }
 
 // For heading direction

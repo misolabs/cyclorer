@@ -66,7 +66,7 @@ function rotateMap(deg) {
 
 function setStats(total_length, area_count){
   statsEl = document.getElementById("stats")
-  statsEl.getElementById("total_length").textContent = `${total_length}`
+  document.getElementById("total_length").textContent = `${total_length}`
 }
 
 // For heading direction

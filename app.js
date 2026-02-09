@@ -1,3 +1,14 @@
+async function loadStats(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Network error");
+    const statsData = await response.json();
+    setStats(statsData["total_length"], statsData["areas"])
+  } catch (err) {
+    console.error("Failed to load Stats json:", err);
+  }
+}
+
 async function loadJunctions() {
   try {
     const response = await fetch("unvisited_junctions.geojson");
@@ -65,8 +76,8 @@ function rotateMap(deg) {
 }
 
 function setStats(total_length, area_count){
-  statsEl = document.getElementById("stats")
-  document.getElementById("total_length").textContent = `${total_length}`
+  document.getElementById("total_length").textContent = `${total_length}km of trails`
+  document.getElementById("area_count").textContent = `In ${area_count} areas`
 }
 
 // For heading direction

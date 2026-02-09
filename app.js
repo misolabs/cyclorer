@@ -9,9 +9,9 @@ async function loadStats(url) {
   }
 }
 
-async function loadJunctions() {
+async function loadJunctions(url) {
   try {
-    const response = await fetch("unvisited_junctions.geojson");
+    const response = await fetch(url);
     if (!response.ok) throw new Error("Network error");
     const geojsonData = await response.json();
 
@@ -91,8 +91,8 @@ L.tileLayer(
   { attribution: "© OpenStreetMap contributors" }
 ).addTo(map)
 
-loadJunctions();
-loadEdges("unvisited_edges.geojson")
+loadJunctions("data/unvisited_junctions.geojson");
+loadEdges("data/unvisited_edges.geojson")
 loadStats("data/stats.json")
 
 const marker = L.circleMarker([0, 0], {

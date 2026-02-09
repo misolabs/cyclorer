@@ -19,6 +19,14 @@ async function loadJunctions(url) {
       pointToLayer: (feature, latlng) =>
         L.circleMarker(latlng, { color: "red", radius: 3 }),
     }).addTo(map);
+
+    // Build spatial grid index for nodes
+    for (const node of geojsonData.features) {
+      const key = cellKey(node.geometry[1], node.geometry[0]);
+      if (!grid.has(key)) grid.set(key, []);
+        grid.get(key).push(node);
+      console.log(key)
+    }
   } catch (err) {
     console.error("Failed to load GeoJSON:", err);
   }
@@ -79,6 +87,16 @@ function setStats(total_length, area_count){
   document.getElementById("total_length").textContent = `${total_length}km of trails`
   document.getElementById("area_count").textContent = `In ${area_count} areas`
 }
+
+const CELL_SIZE = 0.002; // ≈ 200m in lat/lon (rough)
+
+function cellKey(lat, lon) {
+  const x = Math.floor(lon / CELL_SIZE);
+  const y = Math.floor(lat / CELL_SIZE);
+  return `${x},${y}`;
+}
+
+const grid = new Map();
 
 // For heading direction
 const MIN_SPEED = 0.5; // m/s (~5.4 km/h)

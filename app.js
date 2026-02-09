@@ -22,7 +22,7 @@ async function loadJunctions(url) {
 
     // Build spatial grid index for nodes
     for (const node of geojsonData.features) {
-      const key = cellKey(node.geometry[1], node.geometry[0]);
+      const key = cellKey(node.geometry.coordinates[1], node.geometry.coordinates[0]);
       if (!grid.has(key)) grid.set(key, []);
         grid.get(key).push(node);
       console.log(key)

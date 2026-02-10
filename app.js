@@ -1,4 +1,4 @@
-const buildTime = "__BUILD_TIME__"
+const buildTime = "1"
 document.getElementById("buildTime").textContent = buildTime
 
 const homeGPS = [49.497373, 5.978007]
@@ -236,7 +236,7 @@ button.addEventListener("click", () => {
             try{
               const distEl = document.getElementById("candidate-dist")
               const closeNodes = nearbyNodes(latitude, longitude)
-              distEl.textContent=`${closeNodes.length}`
+              //distEl.textContent=`${closeNodes.length}`
               let minDist = Infinity
               let closestNode = null
               for(node of closeNodes){
@@ -247,8 +247,8 @@ button.addEventListener("click", () => {
                   closestNode = node
                 }
               }
-              distEl.textContent = String(minDist)
-              
+              distEl.textContent = `${minDist} units`
+
               if(closestNode != null){
                 boundaryMarker.setLatLng([closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]])
                 const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)
@@ -256,7 +256,7 @@ button.addEventListener("click", () => {
               }
               else distEl.textContent = "Nothing around here..."
             }catch(err){
-              distEl.textContent = String(err)
+              distEl.textContent = err.message
             }
           }
         },

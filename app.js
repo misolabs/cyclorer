@@ -172,7 +172,6 @@ const boundaryMarker = L.circleMarker([0, 0], {
 
 const polyline = L.polyline([], {color: 'pink', width: 2}).addTo(map)
 
-LargestContentfulPaint.
 // --- GPS Tracking Logic ---
 let watchId = null;
 let trackingEnabled = false;

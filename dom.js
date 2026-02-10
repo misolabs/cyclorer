@@ -3,9 +3,9 @@ function element(id){
 }
 
 function setTextContent(id, text){
-    el = element(id)
+    let el = element(id)
     if(el)
-        element.textContent = text
+        el.textContent = text
 }
 
 export function uiUpdateStats(total_length, area_count){

@@ -228,7 +228,7 @@ button.addEventListener("click", () => {
 
             // Find closest boundary point
             closeNodes = nearbyNodes(latitude, longitude)
-            minDist = 99999
+            minDist = 9999999
             closestNode = null
             for(node in closeNodes){
               dist = aproxDist2(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])
@@ -238,11 +238,12 @@ button.addEventListener("click", () => {
                 closestNode = node
               }
             }
+            const distEl = document.getElementById("candidate-dist")
             if(closestNode != null){
               const realDist = (haversineDist(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])).toFixed(0)
-              const distEl = document.getElementById("candidate-dist")
               distEl.textContent = `${realDist}m`
             }
+            else distEl.textContent = "Nothing around here..."
           }
         },
         (err) => console.warn("Geolocation error:", err.message),

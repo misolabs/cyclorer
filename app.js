@@ -141,19 +141,10 @@ function haversineDist(lat1, lon1, lat2, lon2){
   return 2*R*Math.asin(Math.sqrt(a))
 }
 
-/*
-def haversine_dist(p1: HasLatLon, p2: HasLatLon):
-    R = 6371000.0
-    phi1, phi2 = math.radians(p1.lat), math.radians(p2.lat)
-    dphi = math.radians(p2.lat - p1.lat)
-    dlambda = math.radians(p2.lon - p1.lon)
-    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
-    return 2*R*math.asin(math.sqrt(a))
-    */
 const grid = new Map();
 
 // For heading direction
-const MIN_SPEED = 0.5; // m/s (~5.4 km/h)
+const MIN_SPEED = 1.0
 
 // Initialise map
 const map = L.map("map").setView([49.477015, 5.980889], 17)
@@ -179,6 +170,9 @@ const boundaryMarker = L.circleMarker([0, 0], {
   fillOpacity: 0.8
 }).addTo(map)
 
+const polyline = L.polyline([], {color: 'pink', width: 2}).addTo(map)
+
+LargestContentfulPaint.
 // --- GPS Tracking Logic ---
 let watchId = null;
 let trackingEnabled = false;
@@ -248,7 +242,12 @@ button.addEventListener("click", () => {
                 }
               }
               if(closestNode != null){
-                boundaryMarker.setLatLng([closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]])
+                let closestGPS = [closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]]
+                let trackingGPS = [latitude, longitude]
+
+                boundaryMarker.setLatLng(closestGPS)
+                polyline.setLatLng([closestGPS, trackingGPS])
+                
                 const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)
                 distEl.textContent = `${realDist}m`
               }

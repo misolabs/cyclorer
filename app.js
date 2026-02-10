@@ -202,9 +202,7 @@ button.addEventListener("click", () => {
     if ("geolocation" in navigator) {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          //const { latitude, longitude, speed } = pos.coords;
-          [latitude, longitude] = homeGPS
-          speed = 1.0
+          const { latitude, longitude, speed } = pos.coords;
 
           if (trackingEnabled) {
             // Tracking
@@ -241,16 +239,14 @@ button.addEventListener("click", () => {
               //distEl.textContent=`${closeNodes.length}`
               let minDist = Infinity
               let closestNode = null
-              for(node of closeNodes){
-                dist = approxDist2(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])
+              for(let node of closeNodes){
+                let dist = approxDist2(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])
                 if(dist < minDist){
                   console.log("Candidate", dist)
                   minDist = dist
                   closestNode = node
                 }
               }
-              distEl.textContent = `${minDist} units`
-
               if(closestNode != null){
                 boundaryMarker.setLatLng([closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]])
                 const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)

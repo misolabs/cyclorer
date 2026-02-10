@@ -227,25 +227,29 @@ button.addEventListener("click", () => {
             }
 
             // Find closest boundary point
-            const distEl = document.getElementById("candidate-dist")
-            closeNodes = nearbyNodes(latitude, longitude)
-            distEl.textContent=`${closeNodes.size}`
-            minDist = 9999999
-            closestNode = null
-            for(node in closeNodes){
-              dist = aproxDist2(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])
-              if(dist < minDist){
-                console.log("Candidate", dist)
-                minDist = dist
-                closestNode = node
+            try{
+              const distEl = document.getElementById("candidate-dist")
+              closeNodes = nearbyNodes(latitude, longitude)
+              distEl.textContent=`${closeNodes.length}`
+              minDist = 9999999
+              closestNode = null
+              for(node of closeNodes){
+                dist = aproxDist2(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])
+                if(dist < minDist){
+                  console.log("Candidate", dist)
+                  minDist = dist
+                  closestNode = node
+                }
               }
+              if(closestNode != null){
+                boundaryMarker.setLatLng([node.geometry.coordinates[1], node.geometry.coordinates[0]])
+                const realDist = haversineDist(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0]).toFixed(0)
+                distEl.textContent = `${realDist}m`
+              }
+              else distEl.textContent = "Nothing around here..."
+            }catch(err){
+              console.error("Error finding boundary", err)
             }
-            if(closestNode != null){
-              boundaryMarker.setLatLng([node.geometry.coordinates[1], node.geometry.coordinates[0]])
-              const realDist = haversineDist(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0]).toFixed(0)
-              distEl.textContent = `${realDist}m`
-            }
-            else distEl.textContent = "Nothing around here..."
           }
         },
         (err) => console.warn("Geolocation error:", err.message),

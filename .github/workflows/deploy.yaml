@@ -1,0 +1,29 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inject build timestamp
+        run: |
+          BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          sed -i "s/__BUILD_TIME__/$BUILD_TIME/g" app.js
+
+      - name: Commit build info
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git commit -am "Build $BUILD_TIME" || true
+          git push
+
+      - name: Deploy to Pages
+        uses: actions/deploy-pages@v4

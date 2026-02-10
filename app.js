@@ -1,3 +1,6 @@
+const buildTime = "__BUILD_TIME__"
+document.getElementById("buildTime").textContent = buildTime
+
 async function loadStats(url) {
   try {
     const response = await fetch(url);

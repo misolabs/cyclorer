@@ -240,7 +240,8 @@ button.addEventListener("click", () => {
             }
             const distEl = document.getElementById("candidate-dist")
             if(closestNode != null){
-              const realDist = (haversineDist(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])).toFixed(0)
+              boundaryMarker.setLatLng([node.geometry.coordinates[1], node.geometry.coordinates[0]])
+              const realDist = haversineDist(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0]).toFixed(0)
               distEl.textContent = `${realDist}m`
             }
             else distEl.textContent = "Nothing around here..."

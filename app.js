@@ -258,7 +258,7 @@ button.addEventListener("click", () => {
               }
               else distEl.textContent = "Nothing around here..."
             }catch(err){
-              distEl.textContent = err.message
+              document.getElementById("candidate-dist").textContent = err.message
             }
           }
         },

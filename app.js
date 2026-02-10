@@ -242,7 +242,7 @@ button.addEventListener("click", () => {
               let minDist = Infinity
               let closestNode = null
               for(node of closeNodes){
-                dist = aproxDist2(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])
+                dist = approxDist2(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])
                 if(dist < minDist){
                   console.log("Candidate", dist)
                   minDist = dist

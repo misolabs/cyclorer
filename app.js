@@ -235,10 +235,10 @@ button.addEventListener("click", () => {
             // Find closest boundary point
             try{
               const distEl = document.getElementById("candidate-dist")
-              closeNodes = nearbyNodes(latitude, longitude)
+              const closeNodes = nearbyNodes(latitude, longitude)
               distEl.textContent=`${closeNodes.length}`
-              minDist = 9999999
-              closestNode = null
+              let minDist = Infinity
+              let closestNode = null
               for(node of closeNodes){
                 dist = aproxDist2(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])
                 if(dist < minDist){
@@ -247,6 +247,8 @@ button.addEventListener("click", () => {
                   closestNode = node
                 }
               }
+              distEl.textContent = String(minDist)
+              
               if(closestNode != null){
                 boundaryMarker.setLatLng([closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]])
                 const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)

@@ -248,7 +248,7 @@ button.addEventListener("click", () => {
               }
               else distEl.textContent = "Nothing around here..."
             }catch(err){
-              console.error("Error finding boundary", err)
+              distEl.textContent = String(err)
             }
           }
         },

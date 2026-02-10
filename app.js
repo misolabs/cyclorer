@@ -96,6 +96,55 @@ function cellKey(lat, lon) {
   return `${x},${y}`;
 }
 
+function nearbyNodes(lat, lon) {
+  const x = Math.floor(lon / CELL_SIZE);
+  const y = Math.floor(lat / CELL_SIZE);
+
+  const result = [];
+
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      const key = `${x + dx},${y + dy}`;
+      if (grid.has(key)) {
+        result.push(...grid.get(key));
+      }
+    }
+  }
+  return result;
+}
+
+Math.toRad = function(deg) {
+  return deg * Math.PI / 180;
+};
+
+function approxDist2(lat1, lon1, lat2, lon2) {
+  const dLat = lat2 - lat1;
+  const dLon = (lon2 - lon1) * Math.cos(lat1 * Math.PI / 180);
+  return dLat*dLat + dLon*dLon;
+}
+
+function haversineDist(lat1, lon1, lat2, lon2){
+  const R = 6371000.0
+
+  const phi1 = Math.toRad(lat1)
+  const phi2 = Math.toRad(lat2)
+  const dphi = Math.toRad(lat2 - lat1)
+  const dlambda = Math.toRad(lon2 - lon1)
+  
+  const a = Math.min(1, Math.sin(dphi/2)**2 + Math.cos(phi1)*Math.cos(phi2)* Math.sin(dlambda/2)**2)
+
+  return 2*R*Math.asin(Math.sqrt(a))
+}
+
+/*
+def haversine_dist(p1: HasLatLon, p2: HasLatLon):
+    R = 6371000.0
+    phi1, phi2 = math.radians(p1.lat), math.radians(p2.lat)
+    dphi = math.radians(p2.lat - p1.lat)
+    dlambda = math.radians(p2.lon - p1.lon)
+    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+    return 2*R*math.asin(math.sqrt(a))
+    */
 const grid = new Map();
 
 // For heading direction
@@ -116,6 +165,12 @@ loadStats("data/stats.json")
 const marker = L.circleMarker([0, 0], {
   radius: 8,
   color: "blue",
+  fillOpacity: 0.8
+}).addTo(map)
+
+const boundaryMarker = L.circleMarker([0, 0], {
+  radius: 8,
+  color: "purple",
   fillOpacity: 0.8
 }).addTo(map)
 
@@ -169,6 +224,24 @@ button.addEventListener("click", () => {
 
             if (stableHeading !== null) {
               rotateMap(stableHeading);
+            }
+
+            // Find closest boundary point
+            closeNodes = nearbyNodes(latitude, longitude)
+            minDist = 99999
+            closestNode = null
+            for(node in closeNodes){
+              dist = aproxDist2(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])
+              if(dist < minDist){
+                console.log("Candidate", dist)
+                minDist = dist
+                closestNode = node
+              }
+            }
+            if(closestNode != null){
+              const realDist = (haversineDist(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])).toFixed(0)
+              const distEl = document.getElementById("candidate-dist")
+              distEl.textContent = `${realDist}m`
             }
           }
         },

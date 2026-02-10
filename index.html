@@ -77,6 +77,22 @@
       justify-content: center;
       align-items: center;
     }
+    #candidate-container{
+      position: absolute;
+      top: 70%;
+      left: 10%;
+      width: 80%;
+
+      font-size: x-large;
+      font-weight: bold;
+      font-family: sans-serif;
+      text-shadow: 2px 2px 1px grey;
+      color: white;
+      
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
   </style>
 </head>
 <body>
@@ -87,6 +103,11 @@
 </body>
 <button id="tracking-btn">Enable Tracking</button>
 <!--<div id="overlay"><img src="overlay.svg" id="overlay-img"/></div>-->
+
+<div id="candidate-container">
+  <div id="candidate-dist">---</div>
+</div>
+
 <div id="stats-container">
   <p id="total_length">...</p>
   <p id="area_count">...</p>

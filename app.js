@@ -1,4 +1,4 @@
-const buildTime = "1"
+const buildTime = "__BUILD_TIME__"
 document.getElementById("buildTime").textContent = buildTime
 
 const homeGPS = [49.497373, 5.978007]
@@ -202,7 +202,9 @@ button.addEventListener("click", () => {
     if ("geolocation" in navigator) {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          const { latitude, longitude, speed } = pos.coords;
+          //const { latitude, longitude, speed } = pos.coords;
+          [latitude, longitude] = homeGPS
+          speed = 1.0
 
           if (trackingEnabled) {
             // Tracking

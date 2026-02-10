@@ -1,4 +1,5 @@
 import {nearbyNodes, computeBearing, smoothHeading, approxDist2, haversineDist, cellKey} from "./helpers.js"
+import { uiUpdateStats } from "./dom.js"
 
 const buildTime = "__BUILD_TIME__"
 
@@ -19,7 +20,7 @@ async function loadStats(url) {
     const response = await fetch(url);
     if (!response.ok) throw new Error("Network error");
     const statsData = await response.json();
-    setStats(statsData["total_length"], statsData["areas"])
+    uiUpdateStats(statsData["total_length"], statsData["areas"])
   } catch (err) {
     console.error("Failed to load Stats json:", err);
   }
@@ -73,11 +74,6 @@ function rotateMap(deg) {
     mapEl.style.transform = `translate(-50%, -50%) rotate(${-deg}deg)`;
 }
 
-function setStats(total_length, area_count){
-  document.getElementById("total_length").textContent = `${total_length}km of trails`
-  document.getElementById("area_count").textContent = `In ${area_count} areas`
-}
-
 // Initialise map
 const map = L.map("map").setView(ellergronnGPS, zoomLevel)
 
@@ -112,8 +108,6 @@ let lastPos = null;
 let headingHistory = [];
 let stableHeading = null;
 const MAX_HISTORY = 5;
-
-setStats(666, 17)
 
 const button = document.getElementById("tracking-btn");
 
@@ -178,7 +172,7 @@ button.addEventListener("click", () => {
                 let trackingGPS = [latitude, longitude]
 
                 boundaryMarker.setLatLng(closestGPS)
-                polyline.setLatLng([closestGPS, trackingGPS])
+                polyline.setLatLngs([closestGPS, trackingGPS])
                 
                 const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)
                 distEl.textContent = `${realDist}m`

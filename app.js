@@ -1,6 +1,8 @@
 const buildTime = "__BUILD_TIME__"
 document.getElementById("buildTime").textContent = buildTime
 
+const homeGPS = [49.497373, 5.978007]
+
 async function loadStats(url) {
   try {
     const response = await fetch(url);
@@ -201,6 +203,7 @@ button.addEventListener("click", () => {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const { latitude, longitude, speed } = pos.coords;
+
           if (trackingEnabled) {
             // Tracking
             marker.setLatLng([latitude, longitude]);
@@ -245,8 +248,8 @@ button.addEventListener("click", () => {
                 }
               }
               if(closestNode != null){
-                boundaryMarker.setLatLng([node.geometry.coordinates[1], node.geometry.coordinates[0]])
-                const realDist = haversineDist(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0]).toFixed(0)
+                boundaryMarker.setLatLng([closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]])
+                const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)
                 distEl.textContent = `${realDist}m`
               }
               else distEl.textContent = "Nothing around here..."

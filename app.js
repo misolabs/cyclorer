@@ -1,4 +1,4 @@
-import "./helpers.js"
+import {nearbyNodes, computeBearing, smoothHeading, approxDist2, haversineDist} from "./helpers.js"
 
 const buildTime = "__BUILD_TIME__"
 
@@ -162,7 +162,7 @@ button.addEventListener("click", () => {
             try{
               const distEl = document.getElementById("candidate-dist")
               const closeNodes = nearbyNodes(nodesGrid, latitude, longitude)
-              //distEl.textContent=`${closeNodes.length}`
+
               let minDist = Infinity
               let closestNode = null
               for(let node of closeNodes){

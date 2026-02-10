@@ -2,13 +2,13 @@ Math.toRad = function(deg) {
   return deg * Math.PI / 180;
 };
 
-function approxDist2(lat1, lon1, lat2, lon2) {
+export function approxDist2(lat1, lon1, lat2, lon2) {
   const dLat = lat2 - lat1;
   const dLon = (lon2 - lon1) * Math.cos(lat1 * Math.PI / 180);
   return dLat*dLat + dLon*dLon;
 }
 
-function haversineDist(lat1, lon1, lat2, lon2){
+export function haversineDist(lat1, lon1, lat2, lon2){
   const R = 6371000.0
 
   const phi1 = Math.toRad(lat1)
@@ -21,7 +21,7 @@ function haversineDist(lat1, lon1, lat2, lon2){
   return 2*R*Math.asin(Math.sqrt(a))
 }
 
-function computeBearing(lat1, lon1, lat2, lon2) {
+export function computeBearing(lat1, lon1, lat2, lon2) {
   const toRad = (d) => d * Math.PI / 180;
   const toDeg = (r) => r * 180 / Math.PI;
 
@@ -37,7 +37,7 @@ function computeBearing(lat1, lon1, lat2, lon2) {
   return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
-function smoothHeading(headings) {
+export function smoothHeading(headings) {
   let x = 0, y = 0;
   for (const h of headings) {
     const r = h * Math.PI / 180;
@@ -50,13 +50,13 @@ function smoothHeading(headings) {
 // Spatial grid for nodes
 const CELL_SIZE = 0.002; // ≈ 200m in lat/lon (rough)
 
-function cellKey(lat, lon) {
+export function cellKey(lat, lon) {
   const x = Math.floor(lon / CELL_SIZE);
   const y = Math.floor(lat / CELL_SIZE);
   return `${x},${y}`;
 }
 
-function nearbyNodes(grid, lat, lon) {
+export function nearbyNodes(grid, lat, lon) {
   const x = Math.floor(lon / CELL_SIZE);
   const y = Math.floor(lat / CELL_SIZE);
 

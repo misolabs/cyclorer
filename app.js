@@ -1,7 +1,11 @@
 import "./helpers.js"
 
 const buildTime = "__BUILD_TIME__"
+
 const homeGPS = [49.497373, 5.978007]
+const ellergronnGPS = [49.477015, 5.980889]
+const zoomLevel = 17
+
 const nodesGrid = new Map();
 
 // For heading direction
@@ -63,12 +67,10 @@ async function loadEdges(url) {
   }
 }
 
-
-
 function rotateMap(deg) {
   const mapEl = document.getElementById("map");
-  mapEl.style.transform =
-    `translate(-50%, -50%) rotate(${-deg}deg)`;
+  if(mapEl)
+    mapEl.style.transform = `translate(-50%, -50%) rotate(${-deg}deg)`;
 }
 
 function setStats(total_length, area_count){
@@ -76,12 +78,8 @@ function setStats(total_length, area_count){
   document.getElementById("area_count").textContent = `In ${area_count} areas`
 }
 
-
-
-
-
 // Initialise map
-const map = L.map("map").setView([49.477015, 5.980889], 17)
+const map = L.map("map").setView(ellergronnGPS, zoomLevel)
 
 L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -130,11 +128,12 @@ button.addEventListener("click", () => {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const { latitude, longitude, speed } = pos.coords;
+          const currentGPS = [latitude, longitude]
 
           if (trackingEnabled) {
             // Tracking
-            marker.setLatLng([latitude, longitude]);
-            map.setView([latitude, longitude], 17);
+            marker.setLatLng(currentGPS);
+            map.setView(currentGPS, zoomLevel);
 
             // Heading
             if (lastPos && speed !== null && speed > MIN_SPEED) {

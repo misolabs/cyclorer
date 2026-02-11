@@ -1,4 +1,4 @@
-import {nearbyNodes, computeBearing, smoothHeading, approxDist2, haversineDist, cellKey} from "./helpers.js"
+import {nearbyNodes, computeBearing, smoothHeadingMode, approxDist2, haversineDist, cellKey} from "./helpers.js"
 import { uiUpdateStats } from "./dom.js"
 
 const buildTime = "__BUILD_TIME__"
@@ -143,7 +143,7 @@ button.addEventListener("click", () => {
                 headingHistory.shift();
               }
 
-              stableHeading = smoothHeading(headingHistory);
+              stableHeading = smoothHeadingMode(headingHistory);
             }
 
             lastPos = { latitude, longitude };

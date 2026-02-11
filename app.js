@@ -8,6 +8,7 @@ const ellergronnGPS = [49.477015, 5.980889]
 const zoomLevel = 17
 
 const nodesGrid = new Map();
+var areas = []
 
 // For heading direction
 const MIN_SPEED = 1.0
@@ -74,13 +75,7 @@ async function loadAreas(url) {
     if (!response.ok) throw new Error("Network error");
     const geojsonData = await response.json();
 
-    const features = geojsonData.features
-    for(const area of features){
-      if(area.properties.area_id == 2){
-        const ap = L.polyline( area.geometry.coordinates, {color: 'blue', width: 2}).addTo(areaMap)
-        areaMap.fitBounds(ap.getBounds())
-      }
-    }
+    areas = geojsonData.features
   } catch (err) {
     console.error("Failed to load edges:", err);
   }
@@ -119,6 +114,17 @@ const boundaryMarker = L.circleMarker([0, 0], {
 }).addTo(map)
 
 const polyline = L.polyline([], {color: 'pink', width: 2}).addTo(map)
+
+const previewTrails = L.polyline([], {color: 'darkblue', width: 2}).addTo(areaMap)
+
+function setAreaPreview(areaId){
+    for(const area of areas){
+      if(area.properties.area_id == areaId){
+        previewTrails.setLatLngs(area.geometry.coordinates)
+        areaMap.fitBounds(previewTrails.getBounds())
+      }
+
+}
 
 // --- GPS Tracking Logic ---
 let watchId = null;
@@ -193,6 +199,7 @@ button.addEventListener("click", () => {
 
                 boundaryMarker.setLatLng(closestGPS)
                 polyline.setLatLngs([closestGPS, trackingGPS])
+                setAreaPreview(closestNode.properties.area_id)
                 
                 const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)
                 distEl.textContent = `Area: ${closestNode.properties.area_id} - ${realDist}m`

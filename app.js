@@ -179,6 +179,87 @@ let headingHistory = [];
 let stableHeading = null;
 const MAX_HISTORY = 5;
 
+function trackingListener(pos){
+  const { latitude, longitude, speed } = pos.coords;
+  const currentGPS = [latitude, longitude]
+
+  if (trackingEnabled) {
+    // Tracking
+    trackingMarkerLocation.setLatLng(currentGPS);
+    trackingMap.setView(currentGPS, zoomLevel);
+
+    // Heading
+    if (lastPos && speed !== null && speed > MIN_SPEED) {
+      const h = computeBearing(
+        lastPos.latitude,
+        lastPos.longitude,
+        latitude,
+        longitude
+      );
+
+      headingHistory.push(h);
+      if (headingHistory.length > MAX_HISTORY) {
+        headingHistory.shift();
+      }
+
+      stableHeading = smoothHeadingMode(headingHistory);
+    }
+
+    lastPos = { latitude, longitude };
+
+    if (stableHeading !== null) {
+      rotateMap(stableHeading);
+    }
+
+    // Find closest boundary point
+    try{
+      const distEl = document.getElementById("candidate-dist")
+      const closeNodes = nearbyNodes(nodesGrid, latitude, longitude)
+
+      let minDist = Infinity
+      let closestNode = null
+      for(let node of closeNodes){
+        let dist = approxDist2(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])
+        if(dist < minDist){
+          console.log("Candidate", dist)
+          minDist = dist
+          closestNode = node
+        }
+      }
+      if(closestNode != null){
+        let closestGPS = [closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]]
+        let trackingGPS = [latitude, longitude]
+        const areaId = closestNode.properties.area_id
+        const area = findArea(areaId)
+
+        trackingMarkerBoundary.setLatLng(closestGPS)
+        trackingLineBoundary.setLatLngs([closestGPS, trackingGPS])
+
+        setAreaPreview(closestNode.properties.area_id)
+        areaEntrypoint.setLatLng(closestGPS)
+
+        const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)
+        distEl.textContent = `${realDist}m`
+
+        const areaEl = document.getElementById("area-info")
+        if(areaEl && area)
+          areaEl.textContent = `Area ${areaId} - ${(area.properties.total_length).toFixed(0)}m`
+      }
+      else distEl.textContent = "Nothing around here..."
+    }catch(err){
+      document.getElementById("candidate-dist").textContent = err.message
+    }
+  }
+}
+
+function registerTrackingListener(){
+  watchId = navigator.geolocation.watchPosition(
+    trackingListener,
+    (err) => console.warn("Geolocation error:", err.message),
+    { enableHighAccuracy: true }
+  );
+}
+
 const button = document.getElementById("tracking-btn");
 
 window.addEventListener("resize", () => {
@@ -190,82 +271,7 @@ button.addEventListener("click", () => {
   if (!trackingEnabled) {
     // Enable tracking
     if ("geolocation" in navigator) {
-      watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-          const { latitude, longitude, speed } = pos.coords;
-          const currentGPS = [latitude, longitude]
-
-          if (trackingEnabled) {
-            // Tracking
-            trackingMarkerLocation.setLatLng(currentGPS);
-            trackingMap.setView(currentGPS, zoomLevel);
-
-            // Heading
-            if (lastPos && speed !== null && speed > MIN_SPEED) {
-              const h = computeBearing(
-                lastPos.latitude,
-                lastPos.longitude,
-                latitude,
-                longitude
-              );
-
-              headingHistory.push(h);
-              if (headingHistory.length > MAX_HISTORY) {
-                headingHistory.shift();
-              }
-
-              stableHeading = smoothHeadingMode(headingHistory);
-            }
-
-            lastPos = { latitude, longitude };
-
-            if (stableHeading !== null) {
-              rotateMap(stableHeading);
-            }
-
-            // Find closest boundary point
-            try{
-              const distEl = document.getElementById("candidate-dist")
-              const closeNodes = nearbyNodes(nodesGrid, latitude, longitude)
-
-              let minDist = Infinity
-              let closestNode = null
-              for(let node of closeNodes){
-                let dist = approxDist2(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])
-                if(dist < minDist){
-                  console.log("Candidate", dist)
-                  minDist = dist
-                  closestNode = node
-                }
-              }
-              if(closestNode != null){
-                let closestGPS = [closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]]
-                let trackingGPS = [latitude, longitude]
-                const areaId = closestNode.properties.area_id
-                const area = findArea(areaId)
-
-                trackingMarkerBoundary.setLatLng(closestGPS)
-                trackingLineBoundary.setLatLngs([closestGPS, trackingGPS])
-
-                setAreaPreview(closestNode.properties.area_id)
-                areaEntrypoint.setLatLng(closestGPS)
-
-                const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)
-                distEl.textContent = `${realDist}m`
-
-                const areaEl = document.getElementById("area-info")
-                if(areaEl && area)
-                  areaEl.textContent = `Area ${areaId} - ${(area.properties.total_length).toFixed(0)}m`
-              }
-              else distEl.textContent = "Nothing around here..."
-            }catch(err){
-              document.getElementById("candidate-dist").textContent = err.message
-            }
-          }
-        },
-        (err) => console.warn("Geolocation error:", err.message),
-        { enableHighAccuracy: true }
-      );
+      registerTrackingListener()
       trackingEnabled = true;
       button.textContent = "Disable Tracking";
     } else {
@@ -281,3 +287,7 @@ button.addEventListener("click", () => {
     }
   }
 });
+
+registerTrackingListener()
+trackingEnabled = true;
+button.textContent = "Disable Tracking";

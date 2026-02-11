@@ -87,6 +87,24 @@ function rotateMap(deg) {
     mapEl.style.transform = `translate(-50%, -50%) rotate(${-deg}deg)`;
 }
 
+// Splash screen
+const splash = document.getElementById("splash-screen");
+
+function hideSplash() {
+  splash.style.opacity = "0";
+  splash.style.pointerEvents = "none"; // prevents double triggering
+  setTimeout(() => splash.remove(), 500); // remove after fade
+}
+
+// Hide after 5 seconds
+const timer = setTimeout(hideSplash, 5000);
+
+// Hide on click
+splash.addEventListener("click", () => {
+  clearTimeout(timer); // stop the auto timer
+  hideSplash();
+});
+
 // Initialise map
 const trackingMap = L.map("map").setView(ellergronnGPS, zoomLevel)
 const areaMap = L.map("area-preview", {zoomControl: false} )

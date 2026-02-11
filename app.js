@@ -118,12 +118,12 @@ const polyline = L.polyline([], {color: 'pink', width: 2}).addTo(map)
 const previewTrails = L.polyline([], {color: 'darkblue', width: 2}).addTo(areaMap)
 
 function setAreaPreview(areaId){
-    for(const area of areas){
-      if(area.properties.area_id == areaId){
-        previewTrails.setLatLngs(area.geometry.coordinates)
-        areaMap.fitBounds(previewTrails.getBounds())
-      }
-
+  for(const area of areas){
+    if(area.properties.area_id == areaId){
+      previewTrails.setLatLngs(area.geometry.coordinates)
+      areaMap.fitBounds(previewTrails.getBounds())
+    }
+  }
 }
 
 // --- GPS Tracking Logic ---
@@ -200,7 +200,7 @@ button.addEventListener("click", () => {
                 boundaryMarker.setLatLng(closestGPS)
                 polyline.setLatLngs([closestGPS, trackingGPS])
                 setAreaPreview(closestNode.properties.area_id)
-                
+
                 const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)
                 distEl.textContent = `Area: ${closestNode.properties.area_id} - ${realDist}m`
               }

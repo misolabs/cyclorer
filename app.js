@@ -36,7 +36,7 @@ async function loadJunctions(url) {
     L.geoJSON(geojsonData, {
       pointToLayer: (feature, latlng) =>
         L.circleMarker(latlng, { color: "red", radius: 3 }),
-    }).addTo(map);
+    }).addTo(trackingMap);
 
     // Build spatial grid index for nodes
     for (const node of geojsonData.features) {
@@ -62,7 +62,7 @@ async function loadEdges(url) {
         weight: 2,
         opacity: 0.7
       }
-    }).addTo(map);
+    }).addTo(trackingMap);
 
   } catch (err) {
     console.error("Failed to load edges:", err);
@@ -88,43 +88,49 @@ function rotateMap(deg) {
 }
 
 // Initialise map
-const map = L.map("map").setView(ellergronnGPS, zoomLevel)
+const trackingMap = L.map("map").setView(ellergronnGPS, zoomLevel)
 const areaMap = L.map("overlay")
 
-L.tileLayer(
+const trackingBaseMap = L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
   { attribution: "© OpenStreetMap contributors" }
-).addTo(map)
+).addTo(trackingMap)
 
-loadJunctions("data/unvisited_junctions.geojson");
-loadEdges("data/unvisited_edges.geojson")
-loadStats("data/stats.json")
-loadAreas("data/unvisited_areas.geojson")
-
-const marker = L.circleMarker([0, 0], {
+const trackingMarkerLocation = L.circleMarker([0, 0], {
   radius: 8,
   color: "blue",
   fillOpacity: 0.8
-}).addTo(map)
+}).addTo(trackingMap)
 
-const boundaryMarker = L.circleMarker([0, 0], {
+const trackingMarkerBoundary = L.circleMarker([0, 0], {
   radius: 8,
   color: "purple",
   fillOpacity: 0.8
-}).addTo(map)
+}).addTo(trackingMap)
 
-const polyline = L.polyline([], {color: 'pink', width: 2}).addTo(map)
+const trackingLineBoundary = L.polyline([], {color: 'pink', width: 2}).addTo(trackingMap)
 
-const previewTrails = L.polyline([], {color: 'darkblue', width: 2}).addTo(areaMap)
+const areaPreview = L.polyline([], {color: 'lightseagreen', width: 2}).addTo(areaMap)
+const areaEntrypoint = L.circleMarker([0, 0], {
+  radius: 8,
+  color: "purple",
+  fillOpacity: 0.8
+}).addTo(areaMap)
 
 function setAreaPreview(areaId){
   for(const area of areas){
     if(area.properties.area_id == areaId){
-      previewTrails.setLatLngs(area.geometry.coordinates)
-      areaMap.fitBounds(previewTrails.getBounds())
+      areaPreview.setLatLngs(area.geometry.coordinates)
+      areaMap.fitBounds(areaPreview.getBounds())
     }
   }
 }
+
+// Load mapping data
+loadJunctions("data/unvisited_junctions.geojson");
+loadEdges("data/unvisited_edges.geojson")
+loadStats("data/stats.json")
+loadAreas("data/unvisited_areas.geojson")
 
 // --- GPS Tracking Logic ---
 let watchId = null;
@@ -138,7 +144,8 @@ const MAX_HISTORY = 5;
 const button = document.getElementById("tracking-btn");
 
 window.addEventListener("resize", () => {
-  map.invalidateSize({ animate: false });
+  trackingMap.invalidateSize({ animate: false });
+  areaMap.invalidateSize({animate: false})
 });
 
 button.addEventListener("click", () => {
@@ -152,8 +159,8 @@ button.addEventListener("click", () => {
 
           if (trackingEnabled) {
             // Tracking
-            marker.setLatLng(currentGPS);
-            map.setView(currentGPS, zoomLevel);
+            trackingMarkerLocation.setLatLng(currentGPS);
+            trackingMap.setView(currentGPS, zoomLevel);
 
             // Heading
             if (lastPos && speed !== null && speed > MIN_SPEED) {
@@ -197,9 +204,11 @@ button.addEventListener("click", () => {
                 let closestGPS = [closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]]
                 let trackingGPS = [latitude, longitude]
 
-                boundaryMarker.setLatLng(closestGPS)
-                polyline.setLatLngs([closestGPS, trackingGPS])
+                trackingMarkerBoundary.setLatLng(closestGPS)
+                trackingLineBoundary.setLatLngs([closestGPS, trackingGPS])
+
                 setAreaPreview(closestNode.properties.area_id)
+                areaEntrypoint.setLatLng(closestGPS)
 
                 const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)
                 distEl.textContent = `Area: ${closestNode.properties.area_id} - ${realDist}m`

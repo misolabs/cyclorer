@@ -68,6 +68,24 @@ async function loadEdges(url) {
   }
 }
 
+async function loadAreas(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Network error");
+    const geojsonData = await response.json();
+
+    const features = geojsonData.features
+    for(const area of features){
+      if(area.properties.area_id == 2){
+        const ap = L.polyline( area.geometry.coordinates, {color: 'blue', width: 2}).addTo(areaMap)
+        areaMap.fitBounds(ap.getBounds())
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load edges:", err);
+  }
+}
+
 function rotateMap(deg) {
   const mapEl = document.getElementById("map");
   if(mapEl)
@@ -76,6 +94,7 @@ function rotateMap(deg) {
 
 // Initialise map
 const map = L.map("map").setView(ellergronnGPS, zoomLevel)
+const areaMap = L.map("overlay")
 
 L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",

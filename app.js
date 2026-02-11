@@ -13,9 +13,6 @@ var areas = []
 // For heading direction
 const MIN_SPEED = 1.0
 
-document.getElementById("buildTime").textContent = buildTime
-
-
 async function loadStats(url) {
   try {
     const response = await fetch(url);
@@ -88,20 +85,24 @@ function rotateMap(deg) {
 }
 
 // Splash screen
-const splash = document.getElementById("splash-screen");
+const splash = document.getElementById("splash");
 
 function hideSplash() {
-  splash.style.opacity = "0";
-  splash.style.pointerEvents = "none"; // prevents double triggering
-  setTimeout(() => splash.remove(), 500); // remove after fade
+  // Show tracking screen
+  const trScreenEl = document.getElementById("tracking-screen")
+  trScreenEl.style.visibility = "visible"
+
+  // Fade-out splash screen
+  splash.classList.add("hidden");
+  setTimeout(() => {
+    splash.remove();
+    // If using Leaflet:
+    trackingMap.invalidateSize();
+    areaMap.invalidateSize();
+  }, 600);
 }
 
-// Hide after 5 seconds
-const timer = setTimeout(hideSplash, 5000);
-
-// Hide on click
 splash.addEventListener("click", () => {
-  clearTimeout(timer); // stop the auto timer
   hideSplash();
 });
 

@@ -9,6 +9,6 @@ function setTextContent(id, text){
 }
 
 export function uiUpdateStats(total_length, area_count){
-    setTextContent("total_length", `${total_length}km of trails`)
-    setTextContent("area_count", `In ${area_count} areas`)
+    setTextContent("stats-total-length", `${total_length}km`)
+    setTextContent("stats-areas-count", `${area_count}`)
 }

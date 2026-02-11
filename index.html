@@ -116,50 +116,68 @@
       justify-content: center;
       align-items: center;
     }
-    .fullscreen-img {
-      position: fixed;   /* stays in place */
-      top: 0;
-      left: 0;
 
-      width: 100vw;
-      height: 100vh;
+    #splash {
+      position: fixed;
+      inset: 0;
 
-      object-fit: cover;  /* key line */
-      object-position: center;
-      transition: opacity 0.5s ease;
-      
-      z-index: 2000;        /* on top of everthing */
+      background-image: url("assets/splash02.jpg");
+      background-size: cover;
+      background-position: center;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      transition: opacity 0.6s ease;
+      z-index: 9999;
+    }
+    #stats-wrapper{
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      width: 40%;
+      text-align: right;
+      font-family: sans-serif;
+      font-weight: light;
+      font-style: italic;
+    }
+    #splash.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .stats-value{
+      font-size: xx-large;
+      font-family: sans-serif;
+      font-style: normal;
     }
   </style>
 </head>
 <body>
-<body>
-  <img id="splash-screen" src="assets/splash02.jpg" class="fullscreen-img">
-
-  <div id="map-wrapper">
-    <div id="map"></div>
+  <div id="splash">
+    <div class="splash-content">
+      <div id="stats-wrapper">Explore <span class="stats-value" id="stats-areas-count">192</span> areas with <span class="stats-value" id="stats-total-length">247km</span> of trails.</div>
+    </div>
   </div>
-</body>
-<button id="tracking-btn">Enable Tracking</button>
-<!--<div id="overlay"><img src="overlay.svg" id="overlay-img"/></div>-->
+  <div id="tracking-screen" style="visibility: hidden;">
+    <div id="map-wrapper">
+      <div id="map"></div>
+    </div>
+    <button id="tracking-btn">Enable Tracking</button>
+    <!--<div id="overlay"><img src="overlay.svg" id="overlay-img"/></div>-->
 
-<div id="candidate-container">
-  <div id="candidate-dist">---</div>
-</div>
+    <div id="candidate-container">
+      <div id="candidate-dist">---</div>
+    </div>
 
-<div id="area-container">
-  <div id="area-info">---</div>
-</div>
+    <div id="area-container">
+      <div id="area-info">---</div>
+    </div>
 
-<div id="overlay">
-  <div id="area-preview"></div>
-</div>
-
-<div id="stats-container" style="visibility: hidden;">
-  <div id="total_length">...</div>
-  <div id="area_count">...</div>
-  <div id="buildTime">...</div>
-</div>
+    <div id="overlay">
+      <div id="area-preview"></div>
+    </div>
+  </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module" src="./app.js"></script>
 </body>

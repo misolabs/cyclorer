@@ -89,7 +89,7 @@ function rotateMap(deg) {
 
 // Initialise map
 const trackingMap = L.map("map").setView(ellergronnGPS, zoomLevel)
-const areaMap = L.map("overlay")
+const areaMap = L.map("area-preview", {zoomControl: false} )
 
 const trackingBaseMap = L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -117,12 +117,21 @@ const areaEntrypoint = L.circleMarker([0, 0], {
   fillOpacity: 0.8
 }).addTo(areaMap)
 
-function setAreaPreview(areaId){
+function findArea(areaId){
   for(const area of areas){
     if(area.properties.area_id == areaId){
-      areaPreview.setLatLngs(area.geometry.coordinates)
-      areaMap.fitBounds(areaPreview.getBounds())
+      return area
     }
+  }
+  return null
+}
+
+function setAreaPreview(areaId){
+  let area = findArea(areaId)
+  if(area)
+  {
+    areaPreview.setLatLngs(area.geometry.coordinates)
+    areaMap.fitBounds(areaPreview.getBounds())
   }
 }
 
@@ -203,6 +212,8 @@ button.addEventListener("click", () => {
               if(closestNode != null){
                 let closestGPS = [closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]]
                 let trackingGPS = [latitude, longitude]
+                const areaId = closestNode.properties.area_id
+                const area = findArea(areaId)
 
                 trackingMarkerBoundary.setLatLng(closestGPS)
                 trackingLineBoundary.setLatLngs([closestGPS, trackingGPS])
@@ -211,7 +222,11 @@ button.addEventListener("click", () => {
                 areaEntrypoint.setLatLng(closestGPS)
 
                 const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)
-                distEl.textContent = `Area: ${closestNode.properties.area_id} - ${realDist}m`
+                distEl.textContent = `${realDist}m`
+
+                const areaEl = document.getElementById("area-info")
+                if(areaEl && area)
+                  areaEl.textContent = `Area ${areaId} - ${area.properties.total_length}m`
               }
               else distEl.textContent = "Nothing around here..."
             }catch(err){

@@ -233,7 +233,7 @@ button.addEventListener("click", () => {
 
                 const areaEl = document.getElementById("area-info")
                 if(areaEl && area)
-                  areaEl.textContent = `Area ${areaId} - ${area.properties.total_length}m`
+                  areaEl.textContent = `Area ${areaId} - ${(area.properties.total_length).toFixed(0)}m`
               }
               else distEl.textContent = "Nothing around here..."
             }catch(err){

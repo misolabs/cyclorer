@@ -111,7 +111,7 @@ splash.addEventListener("click", () => {
 
 // Initialise map
 const trackingMap = L.map("map").setView(ellergronnGPS, zoomLevel)
-const areaMap = L.map("area-preview", {zoomControl: false} )
+const areaMap = L.map("area-preview", {zoomControl: false, dragging: false} )
 
 const trackingBaseMap = L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -130,9 +130,9 @@ const trackingMarkerBoundary = L.circleMarker([0, 0], {
   fillOpacity: 0.8
 }).addTo(trackingMap)
 
-const trackingLineBoundary = L.polyline([], {color: 'pink', width: 2}).addTo(trackingMap)
+const trackingLineBoundary = L.polyline([], {color: 'purple', opacity: 1, weight: 2}).addTo(trackingMap)
 
-const areaPreview = L.polyline([], {color: 'lightseagreen', width: 2}).addTo(areaMap)
+const areaPreview = L.polyline([], {color: 'lightseagreen', weight: 2}).addTo(areaMap)
 const areaEntrypoint = L.circleMarker([0, 0], {
   radius: 8,
   color: "purple",

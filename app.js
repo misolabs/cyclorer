@@ -195,7 +195,7 @@ button.addEventListener("click", () => {
                 polyline.setLatLngs([closestGPS, trackingGPS])
                 
                 const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)
-                distEl.textContent = `${realDist}m`
+                distEl.textContent = `Area: ${closestNode.properties.area_id} - ${realDist}m`
               }
               else distEl.textContent = "Nothing around here..."
             }catch(err){

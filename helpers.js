@@ -37,7 +37,7 @@ export function computeBearing(lat1, lon1, lat2, lon2) {
   const deg = (toDeg(Math.atan2(y, x)) + 360) % 360;
 
   // Quantise to 6 opr 12 main directions for more stability
-  const quantised = Math.floor(deg / 60) * 60
+  const quantised = Math.floor(deg / 60) * 60 + 30
 
   return quantised
 }

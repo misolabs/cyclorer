@@ -134,22 +134,35 @@
     }
     #stats-wrapper{
       position: fixed;
-      right: 20px;
-      bottom: 20px;
+      right: 30px;
+      bottom: 30px;
       width: 40%;
+
       text-align: right;
       font-family: sans-serif;
       font-weight: light;
       font-style: italic;
+      font-size: 1em;
     }
     #splash.hidden {
       opacity: 0;
       pointer-events: none;
     }
     .stats-value{
-      font-size: xx-large;
+      font-size: 2em;
       font-family: sans-serif;
       font-style: normal;
+      font-weight: bold;
+      opacity: 0;
+      color: darkslategrey;
+    }
+    .fadein-slow{
+      opacity: 1;
+      transition: opacity 4.0s ease;
+    }
+    .fadein-fast{
+      opacity: 1;
+      transition: opacity 1.0s ease;
     }
   </style>
 </head>

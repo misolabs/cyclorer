@@ -18,7 +18,10 @@ async function loadStats(url) {
     const response = await fetch(url);
     if (!response.ok) throw new Error("Network error");
     const statsData = await response.json();
+
     uiUpdateStats(statsData["total_length"], statsData["areas"])
+    document.getElementById("stats-total-length").classList.add("fadein-slow")
+    document.getElementById("stats-areas-count").classList.add("fadein-slow")
   } catch (err) {
     console.error("Failed to load Stats json:", err);
   }

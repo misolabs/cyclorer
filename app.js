@@ -126,11 +126,18 @@ function findArea(areaId){
   return null
 }
 
+function flipCoords(coords) {
+  if (typeof coords[0] === "number") {
+    return [coords[1], coords[0]];
+  }
+  return coords.map(flipCoords);
+}
+
 function setAreaPreview(areaId){
   let area = findArea(areaId)
   if(area)
   {
-    areaPreview.setLatLngs(area.geometry.coordinates)
+    areaPreview.setLatLngs(flipCoords(area.geometry.coordinates))
     areaMap.fitBounds(areaPreview.getBounds())
   }
 }

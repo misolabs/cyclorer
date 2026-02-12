@@ -243,9 +243,9 @@ function trackingListener(pos){
 
         const areaEl = document.getElementById("area-info")
         if(areaEl && area)
-          areaEl.textContent = `Area ${areaId} - ${(area.properties.total_length).toFixed(0)}m`
+          areaEl.textContent = `Area ${areaId}<BR/>${(area.properties.total_length).toFixed(0)}m`
       }
-      else distEl.textContent = "Nothing around here..."
+      else distEl.textContent = "Nothing new around here..."
     }catch(err){
       document.getElementById("candidate-dist").textContent = err.message
     }

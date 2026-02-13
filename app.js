@@ -1,5 +1,6 @@
 import {nearbyNodes, computeBearing, smoothHeadingMode, approxDist2, haversineDist, cellKey} from "./helpers.js"
 import { uiUpdateStats } from "./dom.js"
+import {init_edge_index, add_routing_edge, routing_stats} from "./routing.js"
 
 const buildTime = "__BUILD_TIME__"
 
@@ -9,6 +10,8 @@ const zoomLevel = 17
 
 const nodesGrid = new Map();
 var areas = []
+var statsData = {}
+var routingData = []
 
 // For heading direction
 const MIN_SPEED = 1.0
@@ -17,7 +20,10 @@ async function loadStats(url) {
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error("Network error");
-    const statsData = await response.json();
+    statsData = await response.json();
+    
+    // bbox format: minLon, minLat, maxLon, maxLat
+    init_edge_index(statsData.bbox)
 
     uiUpdateStats(statsData["total_length"], statsData["areas"])
     document.getElementById("stats-total-length").classList.add("fadein-slow")
@@ -66,6 +72,23 @@ async function loadEdges(url) {
 
   } catch (err) {
     console.error("Failed to load edges:", err);
+  }
+}
+
+async function loadRouting(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Network error");
+    routingData = await response.json();
+
+    // bbox format: minLon, minLat, maxLon, maxLat
+    for(const edge of routingData.features){ 
+      add_routing_edge(edge.properties.bbox, edge.properties.osmid)
+    }
+    console.log("grid index built") 
+    routing_stats()
+  } catch (err) {
+    console.error("Failed to load routing:", err.message);
   }
 }
 
@@ -169,6 +192,7 @@ loadJunctions("data/unvisited_junctions.geojson");
 loadEdges("data/unvisited_edges.geojson")
 loadStats("data/stats.json")
 loadAreas("data/unvisited_areas.geojson")
+loadRouting("data/routing_edges.geojson")
 
 // --- GPS Tracking Logic ---
 let watchId = null;

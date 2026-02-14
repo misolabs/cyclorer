@@ -305,8 +305,10 @@ function trackingListener(pos){
     try{
       if(entrypointNode){
         const snappedEdge = find_closest_edge(latitude, longitude)
-        const routed_length = find_route(snappedEdge, entrypointNode.properties.osmid)
-        document.getElementById("candidate-dist").textContent = `${routed_length}`
+        const {total_length, route_geometry} = find_route(snappedEdge, entrypointNode.properties.osmid)
+
+        document.getElementById("candidate-dist").textContent = `${total_length.toFixed(0)}`
+        routeLine.setLatLngs(route_geometry)
       }
     }catch(err){
       console.error("Finding closest node", err.message)

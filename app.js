@@ -42,7 +42,7 @@ async function loadJunctions(url) {
     L.geoJSON(geojsonData, {
       pointToLayer: (feature, latlng) =>
         L.circleMarker(latlng, { color: "red", radius: 3 }),
-    }).addTo(trackingMap);
+    }).addTo(staticLayer);
 
     // Build spatial grid index for nodes
     for (const node of geojsonData.features) {
@@ -68,7 +68,7 @@ async function loadEdges(url) {
         weight: 2,
         opacity: 0.7
       }
-    }).addTo(trackingMap);
+    }).addTo(staticLayer);
 
   } catch (err) {
     console.error("Failed to load edges:", err);
@@ -132,29 +132,48 @@ splash.addEventListener("click", () => {
   hideSplash();
 });
 
-// Initialise map
+// Initialise maps
+
+// Tracking map
 const trackingMap = L.map("map").setView(ellergronnGPS, zoomLevel)
-const areaMap = L.map("area-preview", {zoomControl: false, dragging: false} )
 
 const trackingBaseMap = L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
   { attribution: "© OpenStreetMap contributors" }
 ).addTo(trackingMap)
 
+// Add layers (from bottom to top)
+const staticLayer = L.layerGroup().addTo(trackingMap)
+const routingLayer = L.layerGroup().addTo(trackingMap)
+const markerLayer = L.layerGroup().addTo(trackingMap)
+
 const trackingMarkerLocation = L.circleMarker([0, 0], {
   radius: 8,
   color: "blue",
   fillOpacity: 0.8
-}).addTo(trackingMap)
+}).addTo(markerLayer)
 
 const trackingMarkerBoundary = L.circleMarker([0, 0], {
   radius: 8,
   color: "purple",
   fillOpacity: 0.8
-}).addTo(trackingMap)
+}).addTo(markerLayer)
 
-const trackingLineBoundary = L.polyline([], {color: 'purple', opacity: 1, weight: 2}).addTo(trackingMap)
+const trackingLineBoundary = L.polyline([], {
+  color: 'purple', 
+  opacity: 1, 
+  weight: 2
+}).addTo(markerLayer)
 
+const routeLine = L.polyline([], {
+  color: 'green', 
+  opacity: 1, 
+  weight: 2
+}).addTo(routingLayer)
+
+
+// Unexplored area preview
+const areaMap = L.map("area-preview", {zoomControl: false, dragging: false} )
 const areaPreview = L.polyline([], {color: 'lightseagreen', weight: 2}).addTo(areaMap)
 const areaEntrypoint = L.circleMarker([0, 0], {
   radius: 8,
@@ -202,6 +221,8 @@ let lastPos = null;
 let headingHistory = [];
 let stableHeading = null;
 const MAX_HISTORY = 5;
+
+let entrypointNode = null;
 
 function trackingListener(pos){
   const { latitude, longitude, speed } = pos.coords;
@@ -251,6 +272,9 @@ function trackingListener(pos){
         }
       }
       if(closestNode != null){
+        // store the currently selected entrypoint node to the current area
+        entrypointNode = closestNode
+
         let closestGPS = [closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]]
         let trackingGPS = [latitude, longitude]
         const areaId = closestNode.properties.area_id
@@ -269,15 +293,21 @@ function trackingListener(pos){
         if(areaEl && area)
           areaEl.textContent = `Area ${areaId} - ${(area.properties.total_length).toFixed(0)}m`
       }
-      //else distEl.textContent = "Nothing new around here..."
+      else{
+        entrypointNode = null
+        distEl.textContent = "Nothing new around here..."
+      }
     }catch(err){
       console.error("Finding boundary node", err.message)
     }
 
     // Find closest edge for routing
     try{
-      const edge = find_closest_edge(latitude, longitude)
-      document.getElementById("candidate-dist").textContent = `${edge.properties.osmid}`
+      if(entrypointNode){
+        const snappedEdge = find_closest_edge(latitude, longitude)
+        const routed_length = find_route(snappedEdge, entrypointNode.properties.osmid)
+        document.getElementById("candidate-dist").textContent = `${routed_length}`
+      }
     }catch(err){
       console.error("Finding closest node", err.message)
     }

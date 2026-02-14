@@ -230,6 +230,8 @@ function dijkstra(start, target) {
 }
 
 export function find_route(startEdge, nodeId){
+    let total_length = 0
+
     console.log("Target", nodeId)
     console.log("Starting node 1", startEdge.properties.u)
     console.log("Starting node 2", startEdge.properties.v)
@@ -244,7 +246,6 @@ export function find_route(startEdge, nodeId){
 
         // Collect edges and length
         let lastN = routeNodesU[0]
-        let total_length = 0
         for(let i=1; i < routeNodesU.length;i++){
             const currentN = routeNodesU[i]
             const adj = adjacent_edges[lastN]
@@ -260,6 +261,9 @@ export function find_route(startEdge, nodeId){
         }
         console.log("Route length", total_length)
     }else console.error("No route found")
+
+    return total_length
+    //return {length: total_length, edges: edgeList}
 }
 
 export function routing_stats(){

@@ -1,6 +1,6 @@
 import {nearbyNodes, computeBearing, smoothHeadingMode, approxDist2, haversineDist, cellKey} from "./helpers.js"
 import { uiUpdateStats } from "./dom.js"
-import {init_edge_index, add_routing_edge, routing_stats} from "./routing.js"
+import {init_edge_index, add_routing_edge, routing_stats, find_closest_edge} from "./routing.js"
 
 const buildTime = "__BUILD_TIME__"
 
@@ -235,6 +235,14 @@ function trackingListener(pos){
       rotateMap(stableHeading);
     }
 
+    // Find closest edge for routing
+    try{
+      const edge = find_closest_edge(latitude, longitude)
+      document.getElementById("candidate-dist").textContent = `${edge.properties.osmid}`
+    }catch(err){
+      console.error("Finding closest node", err.message)
+    }
+
     // Find closest boundary point
     try{
       const distEl = document.getElementById("candidate-dist")
@@ -263,15 +271,15 @@ function trackingListener(pos){
         areaEntrypoint.setLatLng(closestGPS)
 
         const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)
-        distEl.textContent = `${realDist}m`
+        //distEl.textContent = `${realDist}m`
 
         const areaEl = document.getElementById("area-info")
         if(areaEl && area)
           areaEl.textContent = `Area ${areaId} - ${(area.properties.total_length).toFixed(0)}m`
       }
-      else distEl.textContent = "Nothing new around here..."
+      //else distEl.textContent = "Nothing new around here..."
     }catch(err){
-      document.getElementById("candidate-dist").textContent = err.message
+      console.error("Finding boundary node", err.message)
     }
   }
 }

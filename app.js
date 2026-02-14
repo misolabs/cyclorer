@@ -1,6 +1,6 @@
 import {nearbyNodes, computeBearing, smoothHeadingMode, approxDist2, haversineDist, cellKey} from "./helpers.js"
 import { uiUpdateStats } from "./dom.js"
-import {init_edge_index, add_routing_edge, routing_stats, find_closest_edge} from "./routing.js"
+import {init_edge_index, add_routing_edge, routing_stats, find_closest_edge, find_route} from "./routing.js"
 
 const buildTime = "__BUILD_TIME__"
 
@@ -235,21 +235,13 @@ function trackingListener(pos){
       rotateMap(stableHeading);
     }
 
-    // Find closest edge for routing
-    try{
-      const edge = find_closest_edge(latitude, longitude)
-      document.getElementById("candidate-dist").textContent = `${edge.properties.osmid}`
-    }catch(err){
-      console.error("Finding closest node", err.message)
-    }
-
     // Find closest boundary point
+    let closestNode = null
     try{
       const distEl = document.getElementById("candidate-dist")
       const closeNodes = nearbyNodes(nodesGrid, latitude, longitude)
 
       let minDist = Infinity
-      let closestNode = null
       for(let node of closeNodes){
         let dist = approxDist2(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])
         if(dist < minDist){
@@ -281,6 +273,15 @@ function trackingListener(pos){
     }catch(err){
       console.error("Finding boundary node", err.message)
     }
+
+    // Find closest edge for routing
+    try{
+      const edge = find_closest_edge(latitude, longitude)
+      document.getElementById("candidate-dist").textContent = `${edge.properties.osmid}`
+    }catch(err){
+      console.error("Finding closest node", err.message)
+    }
+
   }
 }
 

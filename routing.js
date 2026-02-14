@@ -126,22 +126,25 @@ export function find_closest_edge(lat, lon){
     const {x,y} = latlon_to_cell(lat, lon)
     console.log(x,y)
 
+    let closestEdge = null
+    let minDist = Infinity
     const candidates = find_candidate_edges(x,y)
     for(const c of candidates){
-        console.log("Candidate", c.properties.osmid)
+        //console.log("Candidate", c.properties.osmid)
         const pointsXY = c.geometry.cartesian
         // geometry is in order lon, lat
         let pLast = pointsXY[0]
-        let minDist = Infinity
         for(let i=1; i < pointsXY.length; i++){
             const dist = pointToSegmentDistance(pTracking, pointsXY[i], pLast)
             if(dist < minDist){
                 minDist = dist
+                closestEdge = c
             }
             pLast = pointsXY[i]
         }
-        console.log("Closest point", minDist)
+        //console.log("Closest point", minDist)
     }
+    return closestEdge
 }
 
 export function routing_stats(){

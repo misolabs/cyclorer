@@ -6,11 +6,48 @@ var gridH = 0
 var gridMinLon = 0
 var gridMinLat = 0
 
+var projCenterLon = 0
+var projCenterLat = 0
+
 var initialised = 0
 
 // Longitude → X axis (horizontal) (6)
 // Latitude  → Y axis (vertical) (49)
 // In bbox (minlon, minlat, maxlon, maxlat)
+
+const R = 6371000; // meters
+
+function toXY(lat, lon) {
+  const φ = lat * Math.PI / 180;
+  const λ = lon * Math.PI / 180;
+  const φ0 = projCenterLat * Math.PI / 180;
+  const λ0 = projCenterLon * Math.PI / 180;
+
+  const x = R * (λ - λ0) * Math.cos(φ0);
+  const y = R * (φ - φ0);
+
+  return { x, y };
+}
+
+function pointToSegmentDistance(P, A, B) {
+  const ABx = B.x - A.x;
+  const ABy = B.y - A.y;
+  const APx = P.x - A.x;
+  const APy = P.y - A.y;
+
+  const ab2 = ABx * ABx + ABy * ABy;
+  const t = Math.max(0, Math.min(1,
+      (APx * ABx + APy * ABy) / ab2
+  ));
+
+  const closestX = A.x + t * ABx;
+  const closestY = A.y + t * ABy;
+
+  const dx = P.x - closestX;
+  const dy = P.y - closestY;
+
+  return Math.sqrt(dx * dx + dy * dy);
+}
 
 export function init_edge_index(bbox){
     gridMinLon = bbox[0]
@@ -18,6 +55,9 @@ export function init_edge_index(bbox){
 
     gridW = Math.ceil((bbox[2] - bbox[0]) / ROUTING_CELL_SIZE); // LON
     gridH = Math.ceil((bbox[3] - bbox[1]) / ROUTING_CELL_SIZE); // LAT
+
+    projCenterLon = (bbox[0] + bbox[2]) / 2
+    projCenterLat = (bbox[1] + bbox[3]) / 2
 
     console.log("x buckets", gridW)
     console.log("y buckets", gridH)
@@ -38,21 +78,34 @@ function latlon_to_cell(lat, lon){
 }
 
 // bbox format: minLon, minLat, maxLon, maxLat
-export function add_routing_edge(bbox, edgeId){
+export function add_routing_edge(bbox, edge){
     if(!initialised)
         return
 
+    // Get the corner grid cells indices from bbox
     const {x: minX, y: minY} = latlon_to_cell(bbox[1], bbox[0])
     const {x: maxX, y: maxY} = latlon_to_cell(bbox[3], bbox[2])
 
+    // Register edge in every bbox cell that may be touched
     for (let x = minX; x <= maxX; x++) {
         for (let y = minY; y <= maxY; y++) {
             const i = cell_to_index(x, y);
             if (!edge_grid_index[i]) 
                 edge_grid_index[i] = [];
-            edge_grid_index[i].push(edgeId);
+            edge_grid_index[i].push(edge);
         }
     }
+
+    // Precompute cartesian coords for geometry points
+    const points = edge.geometry.coordinates
+    const xyPoints = []
+
+    for(const pLatLon of points){
+        // original geometry is in order lon, lat
+        let pCart = toXY(pLatLon[1], pLatLon[0])
+        xyPoints.push(pCart)
+    }
+    edge.geometry.cartesian = xyPoints
 }
 
 function find_candidate_edges(x, y){
@@ -66,6 +119,29 @@ function find_candidate_edges(x, y){
         }
     }
     return candidates.values()
+}
+
+export function find_closest_edge(lat, lon){
+    const pTracking = toXY(lat, lon)
+    const {x,y} = latlon_to_cell(lat, lon)
+    console.log(x,y)
+
+    const candidates = find_candidate_edges(x,y)
+    for(const c of candidates){
+        console.log("Candidate", c.properties.osmid)
+        const pointsXY = c.geometry.cartesian
+        // geometry is in order lon, lat
+        let pLast = pointsXY[0]
+        let minDist = Infinity
+        for(let i=1; i < pointsXY.length; i++){
+            const dist = pointToSegmentDistance(pTracking, pointsXY[i], pLast)
+            if(dist < minDist){
+                minDist = dist
+            }
+            pLast = pointsXY[i]
+        }
+        console.log("Closest point", minDist)
+    }
 }
 
 export function routing_stats(){
@@ -83,11 +159,5 @@ export function routing_stats(){
     console.log("Largest bucket", largest)
 
     console.log("Testing localisation")
-    const [lat,lon] = [49.474077, 5.987302]
-    const {x,y} = latlon_to_cell(lat, lon)
-    console.log(x,y)
-    
-    const candidates = find_candidate_edges(x,y)
-    for(const c of candidates)
-        console.log(c)
+    find_closest_edge(49.474077, 5.987302)
 }

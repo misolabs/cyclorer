@@ -83,7 +83,7 @@ async function loadRouting(url) {
 
     // bbox format: minLon, minLat, maxLon, maxLat
     for(const edge of routingData.features){ 
-      add_routing_edge(edge.properties.bbox, edge.properties.osmid)
+      add_routing_edge(edge.properties.bbox, edge)
     }
     console.log("grid index built") 
     routing_stats()

@@ -37,18 +37,24 @@ function pointToSegmentDistance(P, A, B) {
   const APx = P.x - A.x;
   const APy = P.y - A.y;
 
+  // Project onto line through A and B
   const ab2 = ABx * ABx + ABy * ABy;
   const t = Math.max(0, Math.min(1,
       (APx * ABx + APy * ABy) / ab2
   ));
 
+  // Intersection point I
   const closestX = A.x + t * ABx;
   const closestY = A.y + t * ABy;
 
+  // Vector from P to intersection point
   const dx = P.x - closestX;
   const dy = P.y - closestY;
 
-  return Math.sqrt(dx * dx + dy * dy);
+  return {
+    distanceToSegment: Math.sqrt(dx * dx + dy * dy),
+    t: t,
+  }
 }
 
 export function init_edge_index(bbox){
@@ -142,25 +148,41 @@ export function find_closest_edge(lat, lon){
 
     let closestEdge = null
     let minDist = Infinity
+    let segmentIndex = undefined
+    let segmentT = undefined
+
     const candidates = find_candidate_edges(x,y)
     for(const c of candidates){
         console.log("Candidate", c.properties.osmid)
         const pointsXY = c.geometry.cartesian
+
         // geometry is in order lon, lat
         let pLast = pointsXY[0]
+        console.log("Edge segments", pointsXY.length - 1)
         for(let i=1; i < pointsXY.length; i++){
-            const dist = pointToSegmentDistance(pTracking, pointsXY[i], pLast)
-            if(dist < minDist){
-                minDist = dist
+            const {distanceToSegment, t} = pointToSegmentDistance(pTracking, pointsXY[i], pLast)
+            if(distanceToSegment < minDist && t >= 0 && t <= 1){
+                minDist = distanceToSegment
                 closestEdge = c
+                segmentIndex = i - 1
+                segmentT = t
             }
             pLast = pointsXY[i]
         }
         console.log("Closest point", minDist)
+        console.log("Segment index", segmentIndex)
+        console.log("Segement t", segmentT)
     }
-    return closestEdge
+    return {
+        edge:closestEdge,
+        segmentIndex: segmentIndex,
+        segmentT: segmentT,
+        distanceToEdge: minDist,
+    }
 }
 
+// Use Map of "Best predecessor for x" to walk back to starting node from target
+// Result is a list of node ids 
 function reconstructPath(prev, target) {
   const path = [];
   let current = target;
@@ -180,17 +202,17 @@ function reconstructPath(prev, target) {
 }
 
 function dijkstra(start, target) {
-  const dist = {};
-  const prev = {};
+  const dist = {}; // Distances from starting node to node x
+  const prev = {}; // Best predecessor for node x 
   const visited = new Set();
   
+  // Init: Put starting node in queue
   dist[start] = 0;
-
   const queue = [start];
 
   while (queue.length > 0) {
 
-    // Find node with smallest distance
+    // Find node u in queue with smallest distance
     let u = null;
     let best = Infinity;
 
@@ -201,7 +223,7 @@ function dijkstra(start, target) {
       }
     }
 
-    // Remove u from queue
+    // Remove best candidate u from queue
     queue.splice(queue.indexOf(u), 1);
 
     if (u === target){
@@ -210,10 +232,12 @@ function dijkstra(start, target) {
 
     visited.add(u);
 
-    //console.log("Neighbours", u, adjacent_edges[u])
+    // Find all neighbours of u that we haven't visited yet
     for (const { node: v, length } of adjacent_edges[u]) {
+      // Skip if we have been here before (avoid loops)
       if (visited.has(v)) continue;
 
+      // Is this a better way to get to v?
       const alt = dist[u] + length;
 
       if (dist[v] === undefined || alt < dist[v]) {
@@ -230,8 +254,10 @@ function dijkstra(start, target) {
 }
 
 export function find_route(startEdge, nodeId){
-    let total_length = 0
-    const route_geometry = []
+    let total_u_length = 0
+    const route_u_geometry = []
+    let total_v_length = 0
+    const route_v_geometry = []
 
     console.log("Target", nodeId)
     console.log("Starting node 1", startEdge.properties.u)
@@ -241,10 +267,10 @@ export function find_route(startEdge, nodeId){
     // Search from both ends
     // Determine intersection of tracking pos with current edge and split
     const routeNodesU = dijkstra(startEdge.properties.u, nodeId)
+    const routeNodesV = dijkstra(startEdge.properties.v, nodeId)
 
+    // Given a list of nodes reconstruct the list of edges
     if(routeNodesU){
-        //console.log(result)
-
         // Collect edges and length
         let lastN = routeNodesU[0]
         for(let i=1; i < routeNodesU.length;i++){
@@ -254,18 +280,41 @@ export function find_route(startEdge, nodeId){
             if(adj){
                 for(const n of adj){
                     if(n.node === currentN){
-                        total_length += n.length
-                        route_geometry.push(n.geometry)
+                        total_u_length += n.length
+                        route_u_geometry.push(n.geometry)
                     }
                 }
             }else console.error("No neighbours")
             lastN = currentN
         }
-        console.log("Route length", total_length)
+        console.log("Route u length", total_u_length)
     }else console.error("No route found")
 
-    return {total_length, route_geometry}
-    //return {length: total_length, edges: edgeList}
+    // Given a list of nodes reconstruct the list of edges
+    if(routeNodesV){
+        // Collect edges and length
+        let lastN = routeNodesV[0]
+        for(let i=1; i < routeNodesV.length;i++){
+            const currentN = routeNodesV[i]
+            const adj = adjacent_edges[lastN]
+
+            if(adj){
+                for(const n of adj){
+                    if(n.node === currentN){
+                        total_v_length += n.length
+                        route_v_geometry.push(n.geometry)
+                    }
+                }
+            }else console.error("No neighbours")
+            lastN = currentN
+        }
+        console.log("Route v length", total_v_length)
+    }else console.error("No route found")
+
+    if(total_u_length > total_v_length)
+        return {total_u_length, route_u_geometry}
+    else
+        return {total_v_length, route_v_geometry}
 }
 
 export function routing_stats(){
@@ -294,5 +343,5 @@ export function routing_stats(){
 
     // Test routing
     console.log("Testing routing")
-    find_route(edge, 1447926964 /*3642217639*/) 
+    find_route(edge.edge, 1447926964 /*3642217639*/) 
 }

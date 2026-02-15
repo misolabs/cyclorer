@@ -308,7 +308,7 @@ function trackingListener(pos){
     try{
       if(entrypointNode){
         const snappedEdge = find_closest_edge(latitude, longitude)
-        const {total_length, route_geometry} = find_route(snappedEdge, entrypointNode.properties.osmid)
+        const {total_length, route_geometry} = find_route(snappedEdge.edge, entrypointNode.properties.osmid)
         console.log("Route length", total_length)
 
         document.getElementById("candidate-dist").textContent = `${total_length.toFixed(0)}`

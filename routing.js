@@ -121,11 +121,11 @@ export function add_routing_edge(bbox, edge){
 
     if(!adjacent_edges[u])
         adjacent_edges[u] = []
-    adjacent_edges[u].push({node: v, length: edge.properties.length, geometry: edge.geometry.coordinates})
+    adjacent_edges[u].push({node: v, length: edge.properties.length, edge:edge})
     
     if(!adjacent_edges[v])
         adjacent_edges[v] = []
-    adjacent_edges[v].push({node: u, length: edge.properties.length, geometry: edge.geometry.coordinates})
+    adjacent_edges[v].push({node: u, length: edge.properties.length, edge:edge})
 }
 
 function find_candidate_edges(x, y){
@@ -253,68 +253,58 @@ function dijkstra(start, target) {
   return reconstructPath(prev, target);
 }
 
-export function find_route(startEdge, nodeId){
-    let total_u_length = 0
-    const route_u_geometry = []
-    let total_v_length = 0
-    const route_v_geometry = []
+function nodes_to_edges(routeNodes){
+    // Collect edges and length
+    let lastN = routeNodes[0]
+    let totalLength = 0
+    const routeEdges = []
 
+    for(let i=1; i < routeNodes.length;i++){
+        const currentN = routeNodes[i]
+        const adj = adjacent_edges[lastN]
+
+        if(adj){
+            for(const n of adj){
+                if(n.node === currentN){
+                    totalLength += n.length
+                    routeEdges.push(n.edge)
+                }
+            }
+        }else console.error("No neighbours")
+        lastN = currentN
+    }
+    return {totalLength, routeEdges}
+}
+
+export function find_route(startEdge, nodeId){
     console.log("Target", nodeId)
     console.log("Starting node 1", startEdge.properties.u)
     console.log("Starting node 2", startEdge.properties.v)
 
-    // Proper method
-    // Search from both ends
-    // Determine intersection of tracking pos with current edge and split
+    let routeEdgesU = null
+    let routeEdgesV = null
+
     const routeNodesU = dijkstra(startEdge.properties.u, nodeId)
     const routeNodesV = dijkstra(startEdge.properties.v, nodeId)
 
     // Given a list of nodes reconstruct the list of edges
     if(routeNodesU){
         // Collect edges and length
-        let lastN = routeNodesU[0]
-        for(let i=1; i < routeNodesU.length;i++){
-            const currentN = routeNodesU[i]
-            const adj = adjacent_edges[lastN]
-
-            if(adj){
-                for(const n of adj){
-                    if(n.node === currentN){
-                        total_u_length += n.length
-                        route_u_geometry.push(n.geometry)
-                    }
-                }
-            }else console.error("No neighbours")
-            lastN = currentN
-        }
-        console.log("Route u length", total_u_length)
+        routeEdgesU = nodes_to_edges(routeNodesU)
+        console.log("Route u length", routeEdgesU.totalLength)
     }else console.error("No route found")
 
     // Given a list of nodes reconstruct the list of edges
     if(routeNodesV){
         // Collect edges and length
-        let lastN = routeNodesV[0]
-        for(let i=1; i < routeNodesV.length;i++){
-            const currentN = routeNodesV[i]
-            const adj = adjacent_edges[lastN]
-
-            if(adj){
-                for(const n of adj){
-                    if(n.node === currentN){
-                        total_v_length += n.length
-                        route_v_geometry.push(n.geometry)
-                    }
-                }
-            }else console.error("No neighbours")
-            lastN = currentN
-        }
-        console.log("Route v length", total_v_length)
+        routeEdgesV = nodes_to_edges(routeNodesV)
+        console.log("Route u length", routeEdgesV.totalLength)
     }else console.error("No route found")
 
-    if(total_u_length > total_v_length)
-        return {total_u_length, route_u_geometry}
+    if(routeEdgesU && routeEdgesV && routeEdgesU.totalLength > routeEdgesV.totalLength)
+        return routeEdgesU
     else
-        return {total_v_length, route_v_geometry}
+        return routeEdgesV
 }
 
 export function routing_stats(){

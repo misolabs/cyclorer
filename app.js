@@ -308,11 +308,16 @@ function trackingListener(pos){
     try{
       if(entrypointNode){
         const snappedEdge = find_closest_edge(latitude, longitude)
-        const {total_length, route_geometry} = find_route(snappedEdge.edge, entrypointNode.properties.osmid)
-        console.log("Route length", total_length)
+        const currentRoute = find_route(snappedEdge.edge, entrypointNode.properties.osmid)
+        if(currentRoute){
+          console.log("Route length", currentRoute.totalLength)
 
-        document.getElementById("candidate-dist").textContent = `${total_length.toFixed(0)}`
-        routeLine.setLatLngs(flipCoords(route_geometry))
+          document.getElementById("candidate-dist").textContent = `${currentRoute.totalLength.toFixed(0)}`
+
+          // todo: use current route and info on edge intersection to build proper geometry
+          //routeLine.setLatLngs(flipCoords(route_geometry))
+        }else
+          document.getElementById("candidate-dist").textContent = "Route not found"
       }
     }catch(err){
       console.error("Finding closest node", err.message)

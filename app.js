@@ -166,9 +166,10 @@ const trackingLineBoundary = L.polyline([], {
 }).addTo(markerLayer)
 
 const routeLine = L.polyline([], {
-  color: 'green', 
+  color: 'purple', 
   opacity: 1, 
-  weight: 2
+  weight: 5,
+  dashArray: "70%, 30%"
 }).addTo(routingLayer)
 
 

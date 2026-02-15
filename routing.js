@@ -333,5 +333,6 @@ export function routing_stats(){
 
     // Test routing
     console.log("Testing routing")
-    find_route(edge.edge, 1447926964 /*3642217639*/) 
+    const route = find_route(edge.edge, 1447926964 /*3642217639*/) 
+    console.log(route)
 }

@@ -315,12 +315,35 @@ function trackingListener(pos){
           document.getElementById("candidate-dist").textContent = `${currentRoute.totalLength.toFixed(0)}`
 
           // todo: use current route and info on edge intersection to build proper geometry
-          //routeLine.setLatLngs(flipCoords(route_geometry))
+          const route_geometry = []
+          if(currentRoute.routeEdges.length > 1){
+            // First edge = edge with tracking position. Take only part of the geometry
+            const firstEdge = currentRoute.routeEdges[0]
+            const secondEdge = currentRoute.routeEdges[1]
+
+            if(firstEdge.u == secondEdge.u || firstEdge.u == secondEdge.v){
+              // Only take geometry from u to intersection point
+              route_geometry.push(firstEdge.geometry.coordinates.slice(snappedEdge.segmentIndex))
+            }else{
+              route_geometry.push(firstEdge.geometry.coordinates.slice(snappedEdge.segmentIndex, firstEdge.geometry.coordinates.length))
+            }
+          }else{
+            // Special case: Only one segment
+            // NOT RIGHT
+            route_geometry.push(currentRoute.routeEdges[0].geometry.coordinates)
+          }
+
+          // All other edges -> copy whole geometry
+          for(let e = 1; e < currentRoute.routeEdges.length ; e++){
+            route_geometry.push(currentRoute.routeEdges[e].geometry.coordinates)
+          }
+          // Draw polyline, flip lat / lon
+          routeLine.setLatLngs(flipCoords(route_geometry))
         }else
           document.getElementById("candidate-dist").textContent = "Route not found"
       }
     }catch(err){
-      console.error("Finding closest node", err.message)
+      document.getElementById("candidate-dist").textContent= "Finding closest node" + err.message
     }
 
   }

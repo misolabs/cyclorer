@@ -321,15 +321,22 @@ function trackingListener(pos){
             const firstEdge = currentRoute.routeEdges[0]
             const secondEdge = currentRoute.routeEdges[1]
 
-            if(firstEdge.u == secondEdge.u || firstEdge.u == secondEdge.v){
+            if(firstEdge.properties.u == secondEdge.properties.u || firstEdge.properties.u == secondEdge.properties.v){
               // Only take geometry from u to intersection point
-              route_geometry.push(firstEdge.geometry.coordinates.slice(snappedEdge.segmentIndex))
+              route_geometry.push(firstEdge.geometry.coordinates.slice(0, snappedEdge.segmentIndex))
             }else{
-              route_geometry.push(firstEdge.geometry.coordinates.slice(snappedEdge.segmentIndex, firstEdge.geometry.coordinates.length))
+              route_geometry.push(firstEdge.geometry.coordinates.slice(snappedEdge.segmentIndex))
             }
           }else{
             // Special case: Only one segment
-            // NOT RIGHT
+            const onlyEdge = currentRoute.routeEdges[0]
+            const entryNodeId = entrypointNode.properties.osmid
+
+            if(onlyEdge.properties.u == entryNodeId){
+              route_geometry.push(onlyEdge.geometry.coordinates.slice(0, snappedEdge.segmentIndex))
+            }else{
+              route_geometry.push(onlyEdge.geometry.coordinates.slice(snappedEdge.segmentIndex))
+            }
             route_geometry.push(currentRoute.routeEdges[0].geometry.coordinates)
           }
 

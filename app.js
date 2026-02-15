@@ -159,17 +159,19 @@ const trackingMarkerBoundary = L.circleMarker([0, 0], {
   fillOpacity: 0.8
 }).addTo(markerLayer)
 
+/*
 const trackingLineBoundary = L.polyline([], {
   color: 'purple', 
   opacity: 1, 
   weight: 2
 }).addTo(markerLayer)
+*/
 
 const routeLine = L.polyline([], {
   color: 'purple', 
   opacity: 1, 
   weight: 5,
-  dashArray: "70%, 30%"
+  dashArray: "2"
 }).addTo(routingLayer)
 
 
@@ -282,7 +284,7 @@ function trackingListener(pos){
         const area = findArea(areaId)
 
         trackingMarkerBoundary.setLatLng(closestGPS)
-        trackingLineBoundary.setLatLngs([closestGPS, trackingGPS])
+        //trackingLineBoundary.setLatLngs([closestGPS, trackingGPS])
 
         setAreaPreview(closestNode.properties.area_id)
         areaEntrypoint.setLatLng(closestGPS)

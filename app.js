@@ -3,6 +3,7 @@ import { uiUpdateStats } from "./dom.js"
 import {init_edge_index, add_routing_edge, routing_stats, find_closest_edge, find_route} from "./routing.js"
 
 const buildTime = "__BUILD_TIME__"
+const isMobileLike = window.matchMedia("(pointer: coarse)").matches;
 
 const homeGPS = [49.4986211, 5.9763811]
 const ellergronnGPS = [49.477015, 5.980889]
@@ -150,13 +151,13 @@ const markerLayer = L.layerGroup().addTo(trackingMap)
 const trackingMarkerLocation = L.circleMarker([0, 0], {
   radius: 8,
   color: "blue",
-  fillOpacity: 0.8
+  fillOpacity: 1
 }).addTo(markerLayer)
 
 const trackingMarkerBoundary = L.circleMarker([0, 0], {
   radius: 8,
   color: "purple",
-  fillOpacity: 0.8
+  fillOpacity: 1
 }).addTo(markerLayer)
 
 /*
@@ -415,7 +416,7 @@ window.addEventListener("resize", () => {
   areaMap.invalidateSize({animate: false})
 });
 
-const simulationMode = true
+const simulationMode = !isMobileLike
 
 if(!simulationMode){
   button.addEventListener("click", () => {

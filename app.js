@@ -4,7 +4,7 @@ import {init_edge_index, add_routing_edge, routing_stats, find_closest_edge, fin
 
 const buildTime = "__BUILD_TIME__"
 
-const homeGPS = [49.497373, 5.978007]
+const homeGPS = [49.4986211, 5.9763811]
 const ellergronnGPS = [49.477015, 5.980889]
 const zoomLevel = 17
 
@@ -86,7 +86,7 @@ async function loadRouting(url) {
       add_routing_edge(edge.properties.bbox, edge)
     }
     console.log("grid index built") 
-    routing_stats()
+    //routing_stats()
   } catch (err) {
     console.error("Failed to load routing:", err.message);
   }
@@ -135,7 +135,7 @@ splash.addEventListener("click", () => {
 // Initialise maps
 
 // Tracking map
-const trackingMap = L.map("map").setView(ellergronnGPS, zoomLevel)
+const trackingMap = L.map("map").setView(homeGPS, zoomLevel)
 
 const trackingBaseMap = L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -239,7 +239,9 @@ function trackingListener(pos){
   const currentGPS = [latitude, longitude]
 
   if (trackingEnabled) {
-    // Tracking
+    console.log("---------------------------------------")
+
+    // Position Tracking
     trackingMarkerLocation.setLatLng(currentGPS);
     trackingMap.setView(currentGPS, zoomLevel);
 
@@ -268,6 +270,7 @@ function trackingListener(pos){
 
     // Find closest boundary point
     let closestNode = null
+    console.log("Finding closest nodes")
     try{
       const distEl = document.getElementById("candidate-dist")
       const closeNodes = nearbyNodes(nodesGrid, latitude, longitude)
@@ -276,17 +279,18 @@ function trackingListener(pos){
       for(let node of closeNodes){
         let dist = approxDist2(latitude, longitude, node.geometry.coordinates[1], node.geometry.coordinates[0])
         if(dist < minDist){
-          console.log("Candidate", dist)
+          console.log("Candidate", dist.toFixed(0), "m")
           minDist = dist
           closestNode = node
         }
       }
       if(closestNode != null){
+        console.log("Closest area", closestNode.properties.area_id)
+
         // store the currently selected entrypoint node to the current area
         entrypointNode = closestNode
 
         let closestGPS = [closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]]
-        let trackingGPS = [latitude, longitude]
         const areaId = closestNode.properties.area_id
         const area = findArea(areaId)
 
@@ -297,6 +301,7 @@ function trackingListener(pos){
         areaEntrypoint.setLatLng(closestGPS)
 
         const realDist = haversineDist(latitude, longitude, closestNode.geometry.coordinates[1], closestNode.geometry.coordinates[0]).toFixed(0)
+        console.log("Direct Distance", realDist)
         //distEl.textContent = `${realDist}m`
 
         const areaEl = document.getElementById("area-info")
@@ -315,9 +320,11 @@ function trackingListener(pos){
     try{
       if(entrypointNode){
         const snappedEdge = find_closest_edge(latitude, longitude)
-        const currentRoute = find_route(snappedEdge.edge, entrypointNode.properties.osmid)
+        //console.log("Closest edge to tracking pos", snappedEdge.edge.properties)
+        const currentRoute = find_route(snappedEdge.edge, Number(entrypointNode.properties.osmid))
         if(currentRoute){
           console.log("Route length", currentRoute.totalLength)
+          //console.log("Route edges", currentRoute.routeEdges)
 
           document.getElementById("candidate-dist").textContent = `${currentRoute.totalLength.toFixed(0)}`
 
@@ -381,6 +388,21 @@ function registerTrackingListener(){
   );
 }
 
+let simulationId = null
+function registerSimulationTimer(){
+  simulationId = window.setInterval( () => 
+    {
+      const pos = trackingMap.getCenter()
+      trackingListener({
+        coords: {
+          latitude: pos.lat,
+          longitude: pos.lng,
+          speed: 1.0
+        }
+      })
+    }, 3000)
+}
+
 const button = document.getElementById("tracking-btn");
 
 window.addEventListener("resize", () => {
@@ -388,27 +410,52 @@ window.addEventListener("resize", () => {
   areaMap.invalidateSize({animate: false})
 });
 
-button.addEventListener("click", () => {
-  if (!trackingEnabled) {
-    // Enable tracking
-    if ("geolocation" in navigator) {
-      registerTrackingListener()
-      trackingEnabled = true;
-      button.textContent = "Disable Tracking";
-    } else {
-      alert("Geolocation not available");
-    }
-  } else {
-    // Disable tracking
-    trackingEnabled = false;
-    button.textContent = "Enable Tracking";
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
-      watchId = null;
-    }
-  }
-});
+const simulationMode = true
 
-registerTrackingListener()
-trackingEnabled = true;
-button.textContent = "Disable Tracking";
+if(!simulationMode){
+  button.addEventListener("click", () => {
+    if (!trackingEnabled) {
+      // Enable tracking
+      if ("geolocation" in navigator) {
+        registerTrackingListener()
+        trackingEnabled = true;
+        button.textContent = "Disable Tracking";
+      } else {
+        alert("Geolocation not available");
+      }
+    } else {
+      // Disable tracking
+      trackingEnabled = false;
+      button.textContent = "Enable Tracking";
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+    }
+  });
+
+  registerTrackingListener()
+  trackingEnabled = true;
+  button.textContent = "Disable Tracking";
+}else{
+  button.addEventListener("click", () => {
+    if (!trackingEnabled) {
+      // Enable simulation
+      registerSimulationTimer()
+      trackingEnabled = true;
+      button.textContent = "Disable Simulation";
+    } else {
+      // Disable tracking
+      trackingEnabled = false;
+      button.textContent = "Enable Simulation";
+      if (simulationId !== null) {
+        window.clearInterval(simulationId)
+        simulationId = null;
+      }
+    }
+  });
+
+  trackingEnabled = true
+  registerSimulationTimer()
+  button.textContent = "Disable Simulation"
+}

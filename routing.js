@@ -198,6 +198,7 @@ function reconstructPath(prev, target) {
   }
 
   path.reverse();
+  console.log("Reconstructed path", path)
   return path;
 }
 
@@ -264,12 +265,15 @@ function nodes_to_edges(routeNodes){
         const adj = adjacent_edges[lastN]
 
         if(adj){
+            let found = false
             for(const n of adj){
                 if(n.node === currentN){
                     totalLength += n.length
                     routeEdges.push(n.edge)
+                    found = true
                 }
             }
+            if(!found) console.error("No edge found for nodes", lastN, currentN)
         }else console.error("No neighbours")
         lastN = currentN
     }
@@ -292,6 +296,7 @@ export function find_route(startEdge, nodeId){
         // Collect edges and length
         routeEdgesU = nodes_to_edges(routeNodesU)
         console.log("Route u length", routeEdgesU.totalLength)
+        //console.log("Route u nodes", routeNodesU)
     }else console.error("No route found")
 
     // Given a list of nodes reconstruct the list of edges
@@ -299,6 +304,7 @@ export function find_route(startEdge, nodeId){
         // Collect edges and length
         routeEdgesV = nodes_to_edges(routeNodesV)
         console.log("Route u length", routeEdgesV.totalLength)
+        //console.log("Route v nodes", routeNodesV)
     }else console.error("No route found")
 
     if(routeEdgesU && routeEdgesV && routeEdgesU.totalLength > routeEdgesV.totalLength)

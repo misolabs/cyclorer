@@ -329,10 +329,10 @@ export function routing_stats(){
     console.log("Most neighbours", nmax)
 
     console.log("Testing localisation")
-    const edge = find_closest_edge(49.474077, 5.987302)
+    const edge = find_closest_edge(49.4986211, 5.9763811)
 
     // Test routing
     console.log("Testing routing")
-    const route = find_route(edge.edge, 1447926964 /*3642217639*/) 
-    console.log(route)
+    const route = find_route(edge.edge, 9222657166 /*3642217639*/) 
+    //console.log(route)
 }

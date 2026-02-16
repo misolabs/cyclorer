@@ -227,6 +227,13 @@ const MAX_HISTORY = 5;
 
 let entrypointNode = null;
 
+function interpolateLatLon(p1, p2, t){
+  const lat = p1[0] * t + p2[0] * (1 -t)
+  const lon = p1[1] * t + p2[1] * (1 -t)
+
+  return [lat, lon]
+}
+
 function trackingListener(pos){
   const { latitude, longitude, speed } = pos.coords;
   const currentGPS = [latitude, longitude]
@@ -323,9 +330,19 @@ function trackingListener(pos){
 
             if(firstEdge.properties.u == secondEdge.properties.u || firstEdge.properties.u == secondEdge.properties.v){
               // Only take geometry from u to intersection point
-              route_geometry.push(firstEdge.geometry.coordinates.slice(0, snappedEdge.segmentIndex))
+              const segments = firstEdge.geometry.coordinates.slice(0, snappedEdge.segmentIndex + 2)
+              segments[snappedEdge.segmentIndex + 1] = interpolateLatLon(
+                segments[snappedEdge.segmentIndex], 
+                segments[snappedEdge.segmentIndex + 1], 
+                1 - snappedEdge.segmentT)
+              route_geometry.push(segments)
             }else{
-              route_geometry.push(firstEdge.geometry.coordinates.slice(snappedEdge.segmentIndex))
+              const segments = firstEdge.geometry.coordinates.slice(snappedEdge.segmentIndex)
+              segments[0] = interpolateLatLon(
+                segments[0], 
+                segments[1], 
+                snappedEdge.segmentT)
+              route_geometry.push(segments)
             }
           }else{
             // Special case: Only one segment

@@ -322,11 +322,16 @@ function trackingListener(pos){
         const snappedEdge = find_closest_edge(latitude, longitude)
         //console.log("Closest edge to tracking pos", snappedEdge.edge.properties)
         const currentRoute = find_route(snappedEdge.edge, Number(entrypointNode.properties.osmid))
+
         if(currentRoute){
           console.log("Route length", currentRoute.totalLength)
           //console.log("Route edges", currentRoute.routeEdges)
 
           document.getElementById("candidate-dist").textContent = `${currentRoute.totalLength.toFixed(0)}`
+
+          // If the snapped edge is not in the route we need to prepend it
+          if(currentRoute.routeEdges[0] != snappedEdge.edge)
+            currentRoute.routeEdges.unshift(snappedEdge.edge)
 
           // todo: use current route and info on edge intersection to build proper geometry
           const route_geometry = []
@@ -341,7 +346,7 @@ function trackingListener(pos){
               segments[snappedEdge.segmentIndex + 1] = interpolateLatLon(
                 segments[snappedEdge.segmentIndex], 
                 segments[snappedEdge.segmentIndex + 1], 
-                1 - snappedEdge.segmentT)
+                snappedEdge.segmentT)
               route_geometry.push(segments)
             }else{
               const segments = firstEdge.geometry.coordinates.slice(snappedEdge.segmentIndex)

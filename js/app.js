@@ -1,6 +1,7 @@
-import {nearbyNodes, computeBearing, smoothHeadingMode, approxDist2, haversineDist, cellKey} from "./helpers.js"
+import {nearbyNodes, approxDist2, haversineDist, cellKey} from "./helpers.js"
 import { uiUpdateStats } from "./dom.js"
 import {init_edge_index, add_routing_edge, routing_stats, find_closest_edge, find_route} from "./routing.js"
+import {Heading} from "./heading.js"
 
 const buildTime = "__BUILD_TIME__"
 const isMobileLike = window.matchMedia("(pointer: coarse)").matches;
@@ -12,7 +13,7 @@ const zoomLevel = 17
 const nodesGrid = new Map();
 var areas = []
 var statsData = {}
-var routingData = []
+var routingData = [] 
 
 // For heading direction
 const MIN_SPEED = 1.0
@@ -20,6 +21,7 @@ const MIN_SPEED = 1.0
 // UI elements
 const button = document.getElementById("tracking-btn");
 const splash = document.getElementById("splash");
+const distanceToTargetEl = document.getElementById("candidate-dist")
 
 async function loadStats(url) {
   try {
@@ -166,8 +168,7 @@ const trackingMarkerBoundary = L.circleMarker([0, 0], {
 const routeLine = L.polyline([], {
   color: 'purple', 
   opacity: 1, 
-  weight: 5,
-  dashArray: "2"
+  weight: 7,
 }).addTo(routingLayer)
 
 
@@ -216,11 +217,6 @@ loadRouting("data/routing_edges.geojson")
 let watchId = null;
 let trackingEnabled = false;
 
-let lastPos = null;
-let headingHistory = [];
-let stableHeading = null;
-const MAX_HISTORY = 5;
-
 let entrypointNode = null;
 
 function interpolateLatLon(p1, p2, t){
@@ -247,28 +243,10 @@ function trackingListener(pos){
     trackingMarkerLocation.setLatLng(currentGPS);
     trackingMap.setView(currentGPS, zoomLevel);
 
-    // Heading
-    if (lastPos && speed !== null && speed > MIN_SPEED) {
-      const h = computeBearing(
-        lastPos.latitude,
-        lastPos.longitude,
-        latitude,
-        longitude
-      );
-
-      headingHistory.push(h);
-      if (headingHistory.length > MAX_HISTORY) {
-        headingHistory.shift();
-      }
-
-      stableHeading = smoothHeadingMode(headingHistory);
-    }
-
-    lastPos = { latitude, longitude };
-
-    if (stableHeading !== null) {
-      rotateMap(stableHeading);
-    }
+    try{
+      const stableHeading = Heading.update(latitude, longitude, speed)
+      if (stableHeading !== null) rotateMap(stableHeading)
+    }catch(err){console.error("Exception in heading", err.message)}
 
     // Find closest boundary point
     let closestNode = null
@@ -324,8 +302,20 @@ function trackingListener(pos){
         // We snap the current postion to a routing edge on every frame
         const snappedEdgeInfo = find_closest_edge(latitude, longitude)
 
+        // Couldn't latch onto anything
+        if(!snappedEdgeInfo || !snappedEdgeInfo.edge){
+          distanceToTargetEl.textContent = "We're lost!?"
+          routeLine.setLatLngs([])
+        }
+
+        // No routing 
+        else if(snappedEdgeInfo.edge.properties.ride_count == 0){
+          distanceToTargetEl.textContent = "Go! Explore"
+          routeLine.setLatLngs([])
+        }
+
         // We have moved on to a new edge -> reroute
-        if(snappedEdgeInfo.edge != currentClosestEdge){
+        else if(snappedEdgeInfo.edge != currentClosestEdge){
           currentClosestEdge = snappedEdgeInfo.edge
           currentRouteInfo = find_route(snappedEdgeInfo.edge, Number(entrypointNode.properties.osmid))
         }

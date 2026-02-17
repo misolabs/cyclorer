@@ -326,7 +326,7 @@ function trackingListener(pos){
 
         // We have moved on to a new edge -> reroute
         if(snappedEdgeInfo.edge != currentClosestEdge){
-          currentClosestEdge = currentRouteInfo.edge
+          currentClosestEdge = snappedEdgeInfo.edge
           currentRouteInfo = find_route(snappedEdgeInfo.edge, Number(entrypointNode.properties.osmid))
         }
 

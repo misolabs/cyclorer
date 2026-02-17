@@ -1,6 +1,6 @@
 import {nearbyNodes, approxDist2, haversineDist, cellKey} from "./helpers.js"
 import { uiUpdateStats } from "./dom.js"
-import {init_edge_index, add_routing_edge, routing_stats, find_closest_edge, find_route} from "./routing.js"
+import {Routing} from "./routing.js"
 import {Heading} from "./heading.js"
 
 const buildTime = "__BUILD_TIME__"
@@ -13,10 +13,6 @@ const zoomLevel = 17
 const nodesGrid = new Map();
 var areas = []
 var statsData = {}
-var routingData = [] 
-
-// For heading direction
-const MIN_SPEED = 1.0
 
 // UI elements
 const button = document.getElementById("tracking-btn");
@@ -30,7 +26,7 @@ async function loadStats(url) {
     statsData = await response.json();
     
     // bbox format: minLon, minLat, maxLon, maxLat
-    init_edge_index(statsData.bbox)
+    Routing.init("data/routing_edges.geojson", statsData.bbox)
 
     uiUpdateStats(statsData["total_length"], statsData["areas"])
     document.getElementById("stats-total-length").classList.add("fadein-slow")
@@ -79,23 +75,6 @@ async function loadEdges(url) {
 
   } catch (err) {
     console.error("Failed to load edges:", err);
-  }
-}
-
-async function loadRouting(url) {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Network error");
-    routingData = await response.json();
-
-    // bbox format: minLon, minLat, maxLon, maxLat
-    for(const edge of routingData.features){ 
-      add_routing_edge(edge.properties.bbox, edge)
-    }
-    console.log("grid index built") 
-    //routing_stats()
-  } catch (err) {
-    console.error("Failed to load routing:", err.message);
   }
 }
 
@@ -211,20 +190,13 @@ loadJunctions("data/unvisited_junctions.geojson");
 loadEdges("data/unvisited_edges.geojson")
 loadStats("data/stats.json")
 loadAreas("data/unvisited_areas.geojson")
-loadRouting("data/routing_edges.geojson")
+//loadRouting("data/routing_edges.geojson")
 
 // --- GPS Tracking Logic ---
 let watchId = null;
 let trackingEnabled = false;
 
 let entrypointNode = null;
-
-function interpolateLatLon(p1, p2, t){
-  const lat = p1[0] * t + p2[0] * (1 -t)
-  const lon = p1[1] * t + p2[1] * (1 -t)
-
-  return [lat, lon]
-}
 
 // ROUTING STATE
 
@@ -243,6 +215,7 @@ function trackingListener(pos){
     trackingMarkerLocation.setLatLng(currentGPS);
     trackingMap.setView(currentGPS, zoomLevel);
 
+    // Heading
     try{
       const stableHeading = Heading.update(latitude, longitude, speed)
       if (stableHeading !== null) rotateMap(stableHeading)
@@ -300,7 +273,7 @@ function trackingListener(pos){
     try{
       if(entrypointNode){
         // We snap the current postion to a routing edge on every frame
-        const snappedEdgeInfo = find_closest_edge(latitude, longitude)
+        const snappedEdgeInfo = Routing.findClosestEdge(latitude, longitude)
 
         // Couldn't latch onto anything
         if(!snappedEdgeInfo || !snappedEdgeInfo.edge){
@@ -317,67 +290,19 @@ function trackingListener(pos){
         // We have moved on to a new edge -> reroute
         else if(snappedEdgeInfo.edge != currentClosestEdge){
           currentClosestEdge = snappedEdgeInfo.edge
-          currentRouteInfo = find_route(snappedEdgeInfo.edge, Number(entrypointNode.properties.osmid))
+          currentRouteInfo = Routing.findRoute(
+            snappedEdgeInfo, 
+            Number(entrypointNode.properties.osmid)
+          )
         }
 
         // We have a valid route
         if(currentRouteInfo){
           console.log("Approximate route length", currentRouteInfo.totalLength)
-          //console.log("Route edges", currentRoute.routeEdges)
 
-          // todo: Better approx and move below
           document.getElementById("candidate-dist").textContent = `${currentRouteInfo.totalLength.toFixed(0)}`
-
-          // If the snapped edge is not in the route we need to prepend it
-          if(currentRouteInfo.routeEdges[0] != snappedEdgeInfo.edge)
-            currentRouteInfo.routeEdges.unshift(snappedEdgeInfo.edge)
-
-          // ROUTE GEOMETRY
-          // Build route geometry
-          // - first edge is split at tracking position
-          // - intersected segment is split again
-          // - all other edges are used as they are
-          const route_geometry = []
-          if(currentRouteInfo.routeEdges.length > 1){
-            // First edge = edge with tracking position. Take only part of the geometry
-            const firstEdge = currentRouteInfo.routeEdges[0]
-            const secondEdge = currentRouteInfo.routeEdges[1]
-
-            if(firstEdge.properties.u == secondEdge.properties.u || firstEdge.properties.u == secondEdge.properties.v){
-              // Only take geometry from u to intersection point
-              const segments = firstEdge.geometry.coordinates.slice(0, snappedEdgeInfo.segmentIndex + 2)
-              segments[snappedEdgeInfo.segmentIndex + 1] = interpolateLatLon(
-                segments[snappedEdgeInfo.segmentIndex], 
-                segments[snappedEdgeInfo.segmentIndex + 1], 
-                snappedEdgeInfo.segmentT)
-              route_geometry.push(segments)
-            }else{
-              const segments = firstEdge.geometry.coordinates.slice(snappedEdgeInfo.segmentIndex)
-              segments[0] = interpolateLatLon(
-                segments[0], 
-                segments[1], 
-                snappedEdgeInfo.segmentT)
-              route_geometry.push(segments)
-            }
-          }else{
-            // Special case: Only one segment
-            const onlyEdge = currentRouteInfo.routeEdges[0]
-            const entryNodeId = entrypointNode.properties.osmid
-
-            if(onlyEdge.properties.u == entryNodeId){
-              route_geometry.push(onlyEdge.geometry.coordinates.slice(0, snappedEdgeInfo.segmentIndex))
-            }else{
-              route_geometry.push(onlyEdge.geometry.coordinates.slice(snappedEdgeInfo.segmentIndex))
-            }
-            route_geometry.push(currentRouteInfo.routeEdges[0].geometry.coordinates)
-          }
-
-          // All other edges -> copy whole geometry
-          for(let e = 1; e < currentRouteInfo.routeEdges.length ; e++){
-            route_geometry.push(currentRouteInfo.routeEdges[e].geometry.coordinates)
-          }
           // Draw polyline, flip lat / lon
-          routeLine.setLatLngs(flipCoords(route_geometry))
+          routeLine.setLatLngs(flipCoords(currentRouteInfo.geometry))
         }else
           document.getElementById("candidate-dist").textContent = "Route not found"
       }
@@ -408,7 +333,7 @@ function registerSimulationTimer(){
           speed: 1.0
         }
       })
-    }, 3000)
+    }, 5000)
 }
 
 

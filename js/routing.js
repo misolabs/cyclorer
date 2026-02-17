@@ -1,5 +1,7 @@
 const ROUTING_CELL_SIZE = 0.0005;
 
+var routingData = [] 
+
 var edge_grid_index = []
 var gridW = 0
 var gridH = 0
@@ -11,13 +13,22 @@ var adjacent_edges = new Map()
 var projCenterLon = 0
 var projCenterLat = 0
 
-var initialised = 0
-
 // Longitude → X axis (horizontal) (6)
 // Latitude  → Y axis (vertical) (49)
 // In bbox (minlon, minlat, maxlon, maxlat)
 
 const R = 6371000; // meters
+
+export const Routing = {
+    initialised: false,
+    init: loadRoutingData,
+    findRoute: find_route,
+    findClosestEdge: find_closest_edge,
+}
+
+//========
+// HELPERS
+//========
 
 function toXY(lat, lon) {
   const φ = lat * Math.PI / 180;
@@ -57,7 +68,28 @@ function pointToSegmentDistance(P, A, B) {
   }
 }
 
-export function init_edge_index(bbox){
+function cell_to_index(x, y){
+    return y * gridW + x
+}
+
+function latlon_to_cell(lat, lon){
+  const x = Math.floor((lon - gridMinLon) / ROUTING_CELL_SIZE);
+  const y = Math.floor((lat - gridMinLat) / ROUTING_CELL_SIZE);
+  return { x, y };
+}
+
+function interpolateLatLon(p1, p2, t){
+  const lat = p1[0] * t + p2[0] * (1 -t)
+  const lon = p1[1] * t + p2[1] * (1 -t)
+
+  return [lat, lon]
+}
+
+//=====
+// INIT
+//=====
+
+function init_edge_index(bbox){
     gridMinLon = bbox[0]
     gridMinLat = bbox[1]
 
@@ -72,24 +104,10 @@ export function init_edge_index(bbox){
     console.log("total buckets", gridW * gridH)
     
     edge_grid_index = new Array(gridW * gridH)
-    initialised = true
-}
-
-function cell_to_index(x, y){
-    return y * gridW + x
-}
-
-function latlon_to_cell(lat, lon){
-  const x = Math.floor((lon - gridMinLon) / ROUTING_CELL_SIZE);
-  const y = Math.floor((lat - gridMinLat) / ROUTING_CELL_SIZE);
-  return { x, y };
 }
 
 // bbox format: minLon, minLat, maxLon, maxLat
-export function add_routing_edge(bbox, edge){
-    if(!initialised)
-        return
-
+function add_routing_edge(bbox, edge){
     // Get the corner grid cells indices from bbox
     const {x: minX, y: minY} = latlon_to_cell(bbox[1], bbox[0])
     const {x: maxX, y: maxY} = latlon_to_cell(bbox[3], bbox[2])
@@ -128,6 +146,34 @@ export function add_routing_edge(bbox, edge){
     adjacent_edges[v].push({node: u, length: edge.properties.length, edge:edge})
 }
 
+async function loadRoutingData(url, bbox) {
+  try {
+    // Set up grid index
+    init_edge_index(bbox)
+
+    // Fetch edge network data
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Network error");
+    routingData = await response.json();
+
+    // bbox format: minLon, minLat, maxLon, maxLat
+    for(const edge of routingData.features){ 
+      add_routing_edge(edge.properties.bbox, edge)
+    }
+    console.log("grid index built")
+    Routing.initialised = true 
+  } catch (err) {
+    console.error("Failed to load routing:", err.message);
+  }
+}
+
+//========
+// ROUTING
+//========
+
+// 1. Find edge in routing network that is closest to current GPS position
+//------------------------------------------------------------------------
+
 function find_candidate_edges(x, y){
     let candidates = new Set()
     for (let dx = -1 ; dx <= 1 ; dx++){
@@ -141,7 +187,7 @@ function find_candidate_edges(x, y){
     return candidates.values()
 }
 
-export function find_closest_edge(lat, lon){
+function find_closest_edge(lat, lon){
     const pTracking = toXY(lat, lon)
     const {x,y} = latlon_to_cell(lat, lon)
     console.log(x,y)
@@ -181,9 +227,86 @@ export function find_closest_edge(lat, lon){
     }
 }
 
+// 2. Find a route from the snapped edge to a destination node
+//------------------------------------------------------------
+
+function buildGeometryFRomEdges(routeEdges, startEdgeInfo, destinationNodeId){
+    // If the snapped edge is not in the route we need to prepend it
+    if(routeEdges[0] != startEdgeInfo.edge)
+        routeEdges.unshift(startEdgeInfo.edge)
+
+    const route_geometry = []
+    if(routeEdges.length > 1){
+        // First edge = edge with tracking position. Take only part of the geometry
+        const firstEdge = routeEdges[0]
+        const secondEdge = routeEdges[1]
+
+        if(firstEdge.properties.u == secondEdge.properties.u || firstEdge.properties.u == secondEdge.properties.v){
+            // Only take geometry from u to intersection point
+            const segments = firstEdge.geometry.coordinates.slice(0, startEdgeInfo.segmentIndex + 2)
+            segments[startEdgeInfo.segmentIndex + 1] = interpolateLatLon(
+            segments[startEdgeInfo.segmentIndex], 
+            segments[startEdgeInfo.segmentIndex + 1], 
+            startEdgeInfo.segmentT)
+            route_geometry.push(segments)
+        }else{
+            const segments = firstEdge.geometry.coordinates.slice(startEdgeInfo.segmentIndex)
+            segments[0] = interpolateLatLon(
+            segments[0], 
+            segments[1], 
+            startEdgeInfo.segmentT)
+            route_geometry.push(segments)
+        }
+    }else{
+        // Special case: Only one segment
+        const onlyEdge = routeEdges[0]
+        const entryNodeId = destinationNodeId
+
+        if(onlyEdge.properties.u == entryNodeId){
+            route_geometry.push(onlyEdge.geometry.coordinates.slice(0, startEdgeInfo.segmentIndex))
+        }else{
+            route_geometry.push(onlyEdge.geometry.coordinates.slice(startEdgeInfo.segmentIndex))
+        }
+        route_geometry.push(routeEdges[0].geometry.coordinates)
+    }
+
+    // All other edges -> copy whole geometry
+    for(let e = 1; e < routeEdges.length ; e++){
+        route_geometry.push(routeEdges[e].geometry.coordinates)
+    }
+
+    return route_geometry
+}
+
+function nodes_to_edges(routeNodes){
+    // Collect edges and length
+    let lastN = routeNodes[0]
+    let totalLength = 0
+    const routeEdges = []
+
+    for(let i=1; i < routeNodes.length;i++){
+        const currentN = routeNodes[i]
+        const adj = adjacent_edges[lastN]
+
+        if(adj){
+            let found = false
+            for(const n of adj){
+                if(n.node === currentN){
+                    totalLength += n.length
+                    routeEdges.push(n.edge)
+                    found = true
+                }
+            }
+            if(!found) console.error("No edge found for nodes", lastN, currentN)
+        }else console.error("No neighbours")
+        lastN = currentN
+    }
+    return {totalLength, routeEdges}
+}
+
 // Use Map of "Best predecessor for x" to walk back to starting node from target
 // Result is a list of node ids 
-function reconstructPath(prev, target) {
+function reconstructNodePath(prev, target) {
   const path = [];
   let current = target;
 
@@ -251,45 +374,20 @@ function dijkstra(start, target) {
     }
   }
 
-  return reconstructPath(prev, target);
+  return reconstructNodePath(prev, target);
 }
 
-function nodes_to_edges(routeNodes){
-    // Collect edges and length
-    let lastN = routeNodes[0]
-    let totalLength = 0
-    const routeEdges = []
 
-    for(let i=1; i < routeNodes.length;i++){
-        const currentN = routeNodes[i]
-        const adj = adjacent_edges[lastN]
-
-        if(adj){
-            let found = false
-            for(const n of adj){
-                if(n.node === currentN){
-                    totalLength += n.length
-                    routeEdges.push(n.edge)
-                    found = true
-                }
-            }
-            if(!found) console.error("No edge found for nodes", lastN, currentN)
-        }else console.error("No neighbours")
-        lastN = currentN
-    }
-    return {totalLength, routeEdges}
-}
-
-export function find_route(startEdge, nodeId){
-    console.log("Target", nodeId)
-    console.log("Starting node 1", startEdge.properties.u)
-    console.log("Starting node 2", startEdge.properties.v)
+function find_route(startEdgeInfo, destinationNodeId){
+    console.log("Target", destinationNodeId)
+    console.log("Starting node 1", startEdgeInfo.edge.properties.u)
+    console.log("Starting node 2", startEdgeInfo.edge.properties.v)
 
     let routeEdgesU = null
     let routeEdgesV = null
 
-    const routeNodesU = dijkstra(startEdge.properties.u, nodeId)
-    const routeNodesV = dijkstra(startEdge.properties.v, nodeId)
+    const routeNodesU = dijkstra(startEdgeInfo.edge.properties.u, destinationNodeId)
+    const routeNodesV = dijkstra(startEdgeInfo.edge.properties.v, destinationNodeId)
 
     // Given a list of nodes reconstruct the list of edges
     if(routeNodesU){
@@ -307,11 +405,19 @@ export function find_route(startEdge, nodeId){
         //console.log("Route v nodes", routeNodesV)
     }else console.error("No route found")
 
+    let routeInfo = {}
     if(routeEdgesU && routeEdgesV && routeEdgesU.totalLength > routeEdgesV.totalLength)
-        return routeEdgesU
+        routeInfo = routeEdgesU
     else
-        return routeEdgesV
+        routeInfo = routeEdgesV
+
+    routeInfo.geometry = buildGeometryFRomEdges(routeInfo.routeEdges, startEdgeInfo, destinationNodeId)
+    return routeInfo
 }
+
+//====================
+// TESTING & DEBUGGING
+//====================
 
 export function routing_stats(){
     let emptyCount = 0

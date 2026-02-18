@@ -2,7 +2,27 @@ import { BoundingBox, Edge } from "../domain/edge";
 import { GeoJsonRoutingCollection } from "../domain/geo";
 import { mapGeoJsonEdge } from "../mapper/edgemapper";
 
-let routingData: GeoJsonRoutingCollection
+const ROUTING_CELL_SIZE = 0.0005;
+const DEBUG_MODE = true
+
+var routingData: GeoJsonRoutingCollection
+
+function init_edge_index(bbox: BoundingBox){
+    gridMinLon = bbox.min.lng
+    gridMinLat = bbox.min.lat
+
+    gridW = Math.ceil((bbox.max.lng - bbox.min.lng) / ROUTING_CELL_SIZE); // LON
+    gridH = Math.ceil((bbox[3] - bbox[1]) / ROUTING_CELL_SIZE); // LAT
+
+    projCenterLon = (bbox[0] + bbox[2]) / 2
+    projCenterLat = (bbox[1] + bbox[3]) / 2
+
+    console.log("x buckets", gridW)
+    console.log("y buckets", gridH)
+    console.log("total buckets", gridW * gridH)
+    
+    edge_grid_index = new Array(gridW * gridH)
+}
 
 function addRoutingEdge(edge: Edge){
     // Get the corner grid cells indices from bbox

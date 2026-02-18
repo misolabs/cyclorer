@@ -1,4 +1,5 @@
 const ROUTING_CELL_SIZE = 0.0005;
+const DEBUG_MODE = true
 
 var routingData = [] 
 
@@ -22,13 +23,19 @@ const R = 6371000; // meters
 export const Routing = {
     initialised: false,
     init: loadRoutingData,
-    findRoute: find_route,
+    findRoughRoute: find_edge_routes,
+    refineRoute: buildGeometryFromEdges,
     findClosestEdge: find_closest_edge,
 }
 
 //========
 // HELPERS
 //========
+
+function debug(...args){
+    if(DEBUG_MODE)
+        console.log(args)
+}
 
 function toXY(lat, lon) {
   const φ = lat * Math.PI / 180;
@@ -83,6 +90,26 @@ function interpolateLatLon(p1, p2, t){
   const lon = p1[1] * t + p2[1] * (1 -t)
 
   return [lat, lon]
+}
+
+function interpolateXY(p1, p2, t){
+  const x = p1[0] * t + p2[0] * (1 -t)
+  const y = p1[1] * t + p2[1] * (1 -t)
+
+  return [x, y]
+}
+
+function edgeLength(cartesian){
+    let [x0, y0] = cartesian[0]
+    let dist = 0
+
+    for(let i = 1; i < cartesian.length ; i ++){
+        const [x, y] = cartesian[i]
+        dist = dist + Math.sqrt( (x0 - x) * (x0 - x) + (y0 - y) * (y0 - y) )
+        x0 = x
+        y0 = y
+    }
+    return dist
 }
 
 //=====
@@ -230,52 +257,138 @@ function find_closest_edge(lat, lon){
 // 2. Find a route from the snapped edge to a destination node
 //------------------------------------------------------------
 
-function buildGeometryFRomEdges(routeEdges, startEdgeInfo, destinationNodeId){
-    // If the snapped edge is not in the route we need to prepend it
-    if(routeEdges[0] != startEdgeInfo.edge)
-        routeEdges.unshift(startEdgeInfo.edge)
+function splitEdge(edge, segmentIndex, segmentT){
+    if(edge.geometry.coordinates.length < segmentIndex + 1){
+        console.error("Segment does not exists in edge")
+        return null
+    }
 
-    const route_geometry = []
-    if(routeEdges.length > 1){
-        // First edge = edge with tracking position. Take only part of the geometry
+    // Splitting into A ---  I --- B
+    //                U --- -1 --- v
+
+    // A
+    const coordinatesA = edge.geometry.coordinates.slice(0, segmentIndex + 1)
+    const cartesianA = edge.geometry.cartesian.slice(0, segmentIndex + 1)
+    // Add the split segment
+    coordinatesA.push(interpolateLatLon(
+            edge.geometry.coordinates[segmentIndex], 
+            edge.geometry.coordinates[segmentIndex + 1], 
+            segmentT))
+    cartesianA.push(interpolateXY(
+            edge.geometry.cartesian[segmentIndex], 
+            edge.geometry.cartesian[segmentIndex + 1], 
+            segmentT))
+
+    const lengthA = edgeLength(cartesianA)
+    const edgeA = {
+        properties:{
+            u: edge.properties.u,
+            v: -1,
+            length: lengthA
+        },
+        geometry:{
+            coordinates: coordinatesA,
+            cartesian: cartesianA
+        }
+    }
+
+    // B
+    const coordinatesB = edge.geometry.coordinates.slice(segmentIndex)
+    const cartesianB = edge.geometry.cartesian.slice(segmentIndex)
+
+    // Add the split segment
+    coordinatesB.unshift(interpolateLatLon(
+            edge.geometry.coordinates[0], 
+            edge.geometry.coordinates[1], 
+            segmentT))
+    cartesianB.unshift(interpolateXY(
+            edge.geometry.cartesian[0], 
+            edge.geometry.cartesian[1], 
+            segmentT))
+
+            const lengthB = edgeLength(cartesianA)
+    const edgeB = {
+        properties:{
+            u: -1,
+            v: edge.properties.v,
+            length: lengthB
+        },
+        geometry:{
+            coordinates: coordinatesB,
+            cartesian: cartesianB
+        }
+    }
+
+    return [edgeA, edgeB]
+}
+
+function buildGeometryFromEdges(routeEdges, startEdgeInfo, destinationNodeId){
+    // If the snapped edge is not in the route we need to prepend it
+    try{
+        // If the first edge has been split, we need to start with an uncut edge
+        if(routeEdges[0].properties.u == -1 || routeEdges[0].properties.v == -1)
+            routeEdges[0] = startEdgeInfo.edge
+
+        else if(routeEdges[0] != startEdgeInfo.edge)
+            routeEdges.unshift(startEdgeInfo.edge)
+
+        const [edgeA, edgeB] = splitEdge(routeEdges[0])
+
         const firstEdge = routeEdges[0]
         const secondEdge = routeEdges[1]
+        let startingEdge = null
 
         if(firstEdge.properties.u == secondEdge.properties.u || firstEdge.properties.u == secondEdge.properties.v){
-            // Only take geometry from u to intersection point
-            const segments = firstEdge.geometry.coordinates.slice(0, startEdgeInfo.segmentIndex + 2)
-            segments[startEdgeInfo.segmentIndex + 1] = interpolateLatLon(
-            segments[startEdgeInfo.segmentIndex], 
-            segments[startEdgeInfo.segmentIndex + 1], 
-            startEdgeInfo.segmentT)
-            route_geometry.push(segments)
+            startingEdge = edgeA
         }else{
-            const segments = firstEdge.geometry.coordinates.slice(startEdgeInfo.segmentIndex)
-            segments[0] = interpolateLatLon(
-            segments[0], 
-            segments[1], 
-            startEdgeInfo.segmentT)
-            route_geometry.push(segments)
+            startingEdge = edgeB
         }
-    }else{
-        // Special case: Only one segment
-        const onlyEdge = routeEdges[0]
-        const entryNodeId = destinationNodeId
+        routeEdges[0] = startingEdge
 
-        if(onlyEdge.properties.u == entryNodeId){
-            route_geometry.push(onlyEdge.geometry.coordinates.slice(0, startEdgeInfo.segmentIndex))
+        const route_geometry = routeEdges.map(e => e.geometry.coordinates)
+        /*
+        if(routeEdges.length > 1){
+            // First edge = edge with tracking position. Take only part of the geometry
+            const firstEdge = routeEdges[0]
+            const secondEdge = routeEdges[1]
+
+            if(firstEdge.properties.u == secondEdge.properties.u || firstEdge.properties.u == secondEdge.properties.v){
+                // Only take geometry from u to intersection point
+                const segments = firstEdge.geometry.coordinates.slice(0, startEdgeInfo.segmentIndex + 2)
+                segments[startEdgeInfo.segmentIndex + 1] = interpolateLatLon(
+                segments[startEdgeInfo.segmentIndex], 
+                segments[startEdgeInfo.segmentIndex + 1], 
+                startEdgeInfo.segmentT)
+                route_geometry.push(segments)
+            }else{
+                const segments = firstEdge.geometry.coordinates.slice(startEdgeInfo.segmentIndex)
+                segments[0] = interpolateLatLon(
+                segments[0], 
+                segments[1], 
+                startEdgeInfo.segmentT)
+                route_geometry.push(segments)
+            }
         }else{
-            route_geometry.push(onlyEdge.geometry.coordinates.slice(startEdgeInfo.segmentIndex))
+            console.log("Single edge case")
+            // Special case: Only one segment
+            const onlyEdge = routeEdges[0]
+            const entryNodeId = destinationNodeId
+
+            if(onlyEdge.properties.u == entryNodeId){
+                route_geometry.push(onlyEdge.geometry.coordinates.slice(0, startEdgeInfo.segmentIndex + 2))
+            }else{
+                route_geometry.push(onlyEdge.geometry.coordinates.slice(startEdgeInfo.segmentIndex))
+            }
+            route_geometry.push(routeEdges[0].geometry.coordinates)
         }
-        route_geometry.push(routeEdges[0].geometry.coordinates)
-    }
 
-    // All other edges -> copy whole geometry
-    for(let e = 1; e < routeEdges.length ; e++){
-        route_geometry.push(routeEdges[e].geometry.coordinates)
-    }
-
-    return route_geometry
+        // All other edges -> copy whole geometry
+        for(let e = 1; e < routeEdges.length ; e++){
+            route_geometry.push(routeEdges[e].geometry.coordinates)
+        }
+*/
+        return route_geometry
+    }catch(err){console.error("Exception building geometry", err.message)}
 }
 
 function nodes_to_edges(routeNodes){
@@ -346,7 +459,7 @@ function dijkstra(start, target) {
         u = n;
       }
     }
-
+debug("best dijk", u)
     // Remove best candidate u from queue
     queue.splice(queue.indexOf(u), 1);
 
@@ -377,17 +490,18 @@ function dijkstra(start, target) {
   return reconstructNodePath(prev, target);
 }
 
-
-function find_route(startEdgeInfo, destinationNodeId){
+// First pass
+// Find two routes from the two endpoints of the starting edge to the destination node
+function find_edge_routes(startEdge, destinationNodeId){
     console.log("Target", destinationNodeId)
-    console.log("Starting node 1", startEdgeInfo.edge.properties.u)
-    console.log("Starting node 2", startEdgeInfo.edge.properties.v)
+    console.log("Starting node 1", startEdge.properties.u)
+    console.log("Starting node 2", startEdge.properties.v)
 
     let routeEdgesU = null
     let routeEdgesV = null
 
-    const routeNodesU = dijkstra(startEdgeInfo.edge.properties.u, destinationNodeId)
-    const routeNodesV = dijkstra(startEdgeInfo.edge.properties.v, destinationNodeId)
+    const routeNodesU = dijkstra(startEdge.properties.u, destinationNodeId)
+    const routeNodesV = dijkstra(startEdge.properties.v, destinationNodeId)
 
     // Given a list of nodes reconstruct the list of edges
     if(routeNodesU){
@@ -405,14 +519,7 @@ function find_route(startEdgeInfo, destinationNodeId){
         //console.log("Route v nodes", routeNodesV)
     }else console.error("No route found")
 
-    let routeInfo = {}
-    if(routeEdgesU && routeEdgesV && routeEdgesU.totalLength > routeEdgesV.totalLength)
-        routeInfo = routeEdgesU
-    else
-        routeInfo = routeEdgesV
-
-    routeInfo.geometry = buildGeometryFRomEdges(routeInfo.routeEdges, startEdgeInfo, destinationNodeId)
-    return routeInfo
+    return [routeEdgesU, routeEdgesV]
 }
 
 //====================

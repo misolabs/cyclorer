@@ -1,3 +1,5 @@
+import * as L from "leaflet";
+
 import {nearbyNodes, approxDist2, haversineDist, cellKey} from "./helpers.js"
 import { uiUpdateStats } from "./dom.js"
 import {Routing} from "./routing.js"
@@ -281,20 +283,33 @@ function trackingListener(pos){
           routeLine.setLatLngs([])
         }
 
-        // No routing 
+        // Un explored edge - No routing 
         else if(snappedEdgeInfo.edge.properties.ride_count == 0){
           distanceToTargetEl.textContent = "Go! Explore"
           routeLine.setLatLngs([])
+          currentRouteInfo = null
         }
 
         // We have moved on to a new edge -> reroute
-        else if(snappedEdgeInfo.edge != currentClosestEdge){
+        else if(snappedEdgeInfo.edge != currentClosestEdge || !currentRouteInfo){
           currentClosestEdge = snappedEdgeInfo.edge
-          currentRouteInfo = Routing.findRoute(
+          // Find rough routes from both ends
+          const [routeEdgesU, routeEdgesV] = Routing.findRoughRoute(
             snappedEdgeInfo, 
             Number(entrypointNode.properties.osmid)
           )
+
+          // Refine both, see which one is closest
+          const geometryU = Routing.refineRoute(
+            routeEdgesU.routeEdges, 
+            snappedEdgeInfo, 
+            Number(entrypointNode.properties.osmid))
         }
+
+        else 
+
+        // If we stay on the same edge, we still need to refine the route for correct
+        // distance to target and drawing
 
         // We have a valid route
         if(currentRouteInfo){
@@ -302,7 +317,7 @@ function trackingListener(pos){
 
           document.getElementById("candidate-dist").textContent = `${currentRouteInfo.totalLength.toFixed(0)}`
           // Draw polyline, flip lat / lon
-          routeLine.setLatLngs(flipCoords(currentRouteInfo.geometry))
+          routeLine.setLatLngs(flipCoords(geo))
         }else
           document.getElementById("candidate-dist").textContent = "Route not found"
       }
